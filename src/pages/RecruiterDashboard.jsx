@@ -7,7 +7,76 @@ const RecruiterDashboard = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    // Mock Data
+    // Create Job State
+    const [jobForm, setJobForm] = useState({
+        title: 'Senior Frontend Engineer',
+        experience: 'Senior Level (5+ years)',
+        description: `We are looking for a Senior Frontend Engineer to join our core product team. You will be responsible for building high-performance web applications using React and TypeScript. 
+
+Key Responsibilities:
+- Develop new user-facing features.
+- Build reusable code and libraries for future use.
+- Ensure the technical feasibility of UI/UX designs.
+- Optimize application for maximum speed and scalability.
+
+Requirements:
+- Strong proficiency in JavaScript, including DOM manipulation and the JavaScript object model.
+- Thorough understanding of React.js and its core principles.
+- Experience with popular React.js workflows (such as Flux or Redux).
+- Familiarity with newer specifications of EcmaScript.`
+    });
+    const [skills, setSkills] = useState(['React.js', 'TypeScript', 'Redux', 'Performance Opt']);
+    const [generated, setGenerated] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [questions, setQuestions] = useState([
+        {
+            id: 1,
+            tag: 'React Core', tagColor: 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300',
+            time: '5 mins',
+            text: 'Can you describe the Virtual DOM in React and explain how it differs from the real DOM? Walk me through how React handles updates efficiently.'
+        },
+        {
+            id: 2,
+            tag: 'State Management', tagColor: 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300',
+            time: '8 mins',
+            text: 'Imagine you have a complex dashboard with multiple widgets that share data. How would you design the state management architecture? When would you choose Redux over React Context?'
+        },
+        {
+            id: 3,
+            tag: 'Performance', tagColor: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300',
+            time: '6 mins',
+            text: 'We noticed our application slows down when rendering large lists of data. What strategies or tools (e.g., React.memo, useMemo, virtualization) would you employ to diagnose and fix this?'
+        },
+        {
+            id: 4,
+            tag: 'Behavioral', tagColor: 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300',
+            time: '5 mins',
+            text: 'Tell me about a time you disagreed with a design decision provided by the UX team. How did you handle the situation and what was the outcome?'
+        }
+    ]);
+
+    const handleGenerate = () => {
+        setIsGenerating(true);
+        // Simulate AI delay
+        setTimeout(() => {
+            setIsGenerating(false);
+            setGenerated(true);
+        }, 1500);
+    };
+
+    const handleAddSkill = () => {
+        const newSkill = prompt("Enter skill name:");
+        if (newSkill) setSkills([...skills, newSkill]);
+    };
+
+    const handleRemoveSkill = (skillToRemove) => {
+        setSkills(skills.filter(s => s !== skillToRemove));
+    };
+
+    const handleRemoveQuestion = (id) => {
+        setQuestions(questions.filter(q => q.id !== id));
+    };
+
     const [candidates] = useState([
         { id: 1, rank: 1, name: 'Jane Doe', email: 'jane.doe@example.com', role: 'Senior React Dev', score: 98, status: 'Interview Ready', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAU5z_Z8syXWVwgjr2x35OeDQhyxpWb2MQAIA73Amn_6YQs2HZGwGUiUg6FFyGx6rBcecDq8OQwP2hiIEJ7XyqBehOXaaFvSBXl3eHJjJMwjEubKexsSLAY93lj8-r3LbJq5PriAMkBjE6SBV63SBkbxzwQfzUA8878cNqHN5H686s8ni0972cB_hP-_7otXev3IROd46-fwj7XhQEjSBOG50Gf2uRFcReWIVWtW7wb4tpLwAJPMOKZ0do3ZSJdlJgp84cOEYm_iQ' },
         { id: 2, rank: 2, name: 'John Smith', email: 'john.smith@example.com', role: 'Backend Engineer', score: 94, status: 'Reviewing', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBmaR4GBP4eMCPjOf3_Jyzm1VmIOXN-SFYD1f8gkdxh6vq08dk94Inol07kTEe9Yi1ohGZ25CA-kITjgAg2DQLzO-W5WXKq_GZjsBbdSy6BAjYg0Xh2myGFiLZF-6wPfsg-xIhiJuQxBgHG9rUkHSElD56RIRTMKL8h6vAmxVvOtOG2ixyX-eJmdK3_wXOE0tU96VZxxlJrm0vxLTU6-_ncd9phbcaFoFqp69IlXAq_bTyjXe7_d2BVMByXdnB2hV9ZosjIVD1NpQ' },
@@ -229,34 +298,205 @@ const RecruiterDashboard = () => {
     );
 
     const renderCreateJob = () => (
-        <div className="max-w-4xl mx-auto space-y-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Create New Job Post</h2>
-            <div className="bg-white dark:bg-[#1a2432] p-8 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-                <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); alert('Job created!'); setActiveTab('overview'); }}>
+        <div className="max-w-6xl mx-auto space-y-8 pb-10">
+            {/* Section: Job Configuration */}
+            <section className="space-y-6">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Job Title</label>
-                        <input type="text" className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-600 outline-none" placeholder="e.g. Senior Frontend Engineer" required />
+                        <h2 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Create New Job</h2>
+                        <p className="text-gray-500 dark:text-gray-400 mt-1">Define the role details to let our AI assist with the screening process.</p>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Department</label>
-                            <input type="text" className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-600 outline-none" placeholder="Engineering" />
+                    <div className="flex gap-3">
+                        <button className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm cursor-pointer">
+                            Save Draft
+                        </button>
+                        <button
+                            onClick={handleGenerate}
+                            disabled={isGenerating}
+                            className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-all shadow-sm shadow-blue-200 dark:shadow-none flex items-center gap-2 cursor-pointer border-none ${isGenerating ? 'opacity-75 cursor-wait' : ''}`}
+                        >
+                            {isGenerating ? (
+                                <>
+                                    <span className="material-symbols-outlined text-[20px] animate-spin">sync</span>
+                                    Generating...
+                                </>
+                            ) : (
+                                <>
+                                    <span className="material-symbols-outlined text-[20px]">auto_awesome</span>
+                                    Generate AI Assessment
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </div>
+                <div className="bg-white dark:bg-[#1a2432] rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 md:p-8">
+                    <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="jobTitle">Job Title</label>
+                                <input
+                                    className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all outline-none"
+                                    id="jobTitle"
+                                    type="text"
+                                    value={jobForm.title}
+                                    onChange={(e) => setJobForm({ ...jobForm, title: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="experience">Experience Level</label>
+                                <div className="relative">
+                                    <select
+                                        className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all outline-none appearance-none cursor-pointer"
+                                        id="experience"
+                                        value={jobForm.experience}
+                                        onChange={(e) => setJobForm({ ...jobForm, experience: e.target.value })}
+                                    >
+                                        <option>Entry Level (0-2 years)</option>
+                                        <option>Mid Level (2-5 years)</option>
+                                        <option>Senior Level (5+ years)</option>
+                                        <option>Executive</option>
+                                    </select>
+                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                                        <span className="material-symbols-outlined">expand_more</span>
+                                    </span>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Location</label>
-                            <input type="text" className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-600 outline-none" placeholder="Remote / New York" />
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="jd">Job Description</label>
+                                <span className="text-xs text-gray-400">{jobForm.description.length} chars</span>
+                            </div>
+                            <textarea
+                                className="w-full p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all outline-none resize-none"
+                                id="jd"
+                                rows="6"
+                                value={jobForm.description}
+                                onChange={(e) => setJobForm({ ...jobForm, description: e.target.value })}
+                            ></textarea>
                         </div>
+                    </form>
+                </div>
+            </section>
+
+            {/* AI Output Section - Conditionally Rendered */}
+            {generated && (
+                <div className="animate-fade-in-up space-y-8">
+                    {/* Divider with AI Badge */}
+                    <div className="relative flex py-5 items-center">
+                        <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
+                        <span className="flex-shrink-0 mx-4 text-gray-400 text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
+                            <span className="material-symbols-outlined text-blue-600 text-lg">psychology</span>
+                            AI Generated Assessment Preview
+                        </span>
+                        <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Job Description</label>
-                        <textarea className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-600 outline-none h-32" placeholder="Describe the role..."></textarea>
-                    </div>
-                    <div className="flex justify-end gap-3 pt-4">
-                        <button type="button" onClick={() => setActiveTab('overview')} className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors border-none cursor-pointer">Cancel</button>
-                        <button type="submit" className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors border-none cursor-pointer">Create Job</button>
-                    </div>
-                </form>
-            </div>
+
+                    <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* Left Col: Insights */}
+                        <div className="space-y-6">
+                            {/* Extracted Skills */}
+                            <div className="bg-white dark:bg-[#1a2432] rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-blue-600">label</span>
+                                        Extracted Skills
+                                    </h3>
+                                    <button className="text-blue-600 text-xs font-medium hover:underline bg-transparent border-none cursor-pointer">Edit</button>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {skills.map((skill) => (
+                                        <span key={skill} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-blue-600/10 text-blue-600 border border-blue-600/10">
+                                            {skill}
+                                            <button onClick={() => handleRemoveSkill(skill)} className="hover:text-red-500 flex items-center bg-transparent border-none cursor-pointer"><span className="material-symbols-outlined text-[16px]">close</span></button>
+                                        </span>
+                                    ))}
+                                    <button onClick={handleAddSkill} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 border-dashed bg-transparent cursor-pointer">
+                                        <span className="material-symbols-outlined text-[16px]">add</span> Add Skill
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Skill Weights */}
+                            <div className="bg-white dark:bg-[#1a2432] rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-6">
+                                    <span className="material-symbols-outlined text-blue-600">equalizer</span>
+                                    Skill Weighting
+                                </h3>
+                                <div className="space-y-5">
+                                    {[
+                                        { label: 'Technical Skills', val: 70, color: 'bg-blue-600' },
+                                        { label: 'System Design', val: 20, color: 'bg-blue-400' },
+                                        { label: 'Soft Skills', val: 10, color: 'bg-blue-300' }
+                                    ].map((item) => (
+                                        <div key={item.label}>
+                                            <div className="flex justify-between text-sm mb-1.5">
+                                                <span className="font-medium text-gray-700 dark:text-gray-300">{item.label}</span>
+                                                <span className="font-bold text-gray-900 dark:text-white">{item.val}%</span>
+                                            </div>
+                                            <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2.5 overflow-hidden">
+                                                <div className={`${item.color} h-2.5 rounded-full`} style={{ width: `${item.val}%` }}></div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="mt-6 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex gap-3 items-start">
+                                    <span className="material-symbols-outlined text-blue-600 text-xl mt-0.5">info</span>
+                                    <p className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
+                                        Weights determine the frequency of questions related to each category in the final interview script.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Right Col: Questions */}
+                        <div className="lg:col-span-2 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-blue-600">quiz</span>
+                                    Generated Interview Questions ({questions.length})
+                                </h3>
+                                <div className="flex gap-2">
+                                    <button className="p-2 text-gray-400 hover:text-blue-600 transition-colors bg-transparent border-none cursor-pointer">
+                                        <span className="material-symbols-outlined">refresh</span>
+                                    </button>
+                                    <button className="p-2 text-gray-400 hover:text-blue-600 transition-colors bg-transparent border-none cursor-pointer">
+                                        <span className="material-symbols-outlined">download</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {questions.map((q) => (
+                                <div key={q.id} className="group bg-white dark:bg-[#1a2432] rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 hover:border-blue-600/50 transition-colors cursor-pointer">
+                                    <div className="flex justify-between items-start gap-4">
+                                        <div className="flex-1 space-y-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className={`${q.tagColor} text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wide`}>{q.tag}</span>
+                                                <span className="text-xs text-gray-400 font-medium">Approx {q.time}</span>
+                                            </div>
+                                            <p className="text-gray-800 dark:text-gray-200 font-medium leading-relaxed">{q.text}</p>
+                                        </div>
+                                        <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button className="p-1.5 text-gray-400 hover:text-blue-600 rounded hover:bg-gray-100 dark:hover:bg-gray-800 bg-transparent border-none cursor-pointer">
+                                                <span className="material-symbols-outlined text-[20px]">edit</span>
+                                            </button>
+                                            <button onClick={() => handleRemoveQuestion(q.id)} className="p-1.5 text-gray-400 hover:text-red-500 rounded hover:bg-gray-100 dark:hover:bg-gray-800 bg-transparent border-none cursor-pointer">
+                                                <span className="material-symbols-outlined text-[20px]">delete</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+
+                            {/* Add Question Button */}
+                            <button className="w-full py-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 text-gray-500 hover:text-blue-600 hover:border-blue-600/50 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all flex items-center justify-center gap-2 font-medium bg-transparent cursor-pointer">
+                                <span className="material-symbols-outlined">add_circle</span>
+                                Add Custom Question
+                            </button>
+                        </div>
+                    </section>
+                </div>
+            )}
         </div>
     );
 
@@ -348,10 +588,7 @@ const RecruiterDashboard = () => {
                                 type="text"
                             />
                         </div>
-                        <button className="relative p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors border-none bg-transparent cursor-pointer">
-                            <span className="material-symbols-outlined">notifications</span>
-                            <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-gray-900"></span>
-                        </button>
+
                         <button onClick={() => setActiveTab('create-job')} className="hidden sm:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm shadow-blue-600/30 border-none cursor-pointer">
                             <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>add</span>
                             Create New Job
