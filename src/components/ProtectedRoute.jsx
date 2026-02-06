@@ -1,24 +1,28 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
-const ProtectedRoute = ({ allowedRoles }) => {
-    const userRole = sessionStorage.getItem('userRole');
+const ProtectedRoute = ({ children, requiredRole }) => {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+      return (
+          <div className="flex items-center justify-center min-h-screen bg-gray-50">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+      );
+  }
 
-    if (!userRole) {
-        return <Navigate to="/login" replace />;
-    }
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
 
-    if (allowedRoles && !allowedRoles.includes(userRole)) {
-        // Redirect to the appropriate dashboard based on their actual role
-        // to prevent unauthorized access to the wrong dashboard
-        if (userRole === 'recruiter') {
-            return <Navigate to="/recruiter-dashboard" replace />;
-        } else {
-            return <Navigate to="/candidate-dashboard" replace />;
-        }
-    }
+  if (requiredRole && user.role !== requiredRole) {
+    // Redirect to correct dashboard if role mismatch
+    return <Navigate to={user.role === 'recruiter' ? '/recruiter-dashboard' : '/candidate-dashboard'} replace />;
+  }
 
-    return <Outlet />;
+  return children;
 };
 
 export default ProtectedRoute;

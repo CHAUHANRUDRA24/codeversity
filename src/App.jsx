@@ -1,36 +1,62 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute'; // Import new component
+
 import Landing from './pages/Landing';
 import Login from './pages/Login';
+import Signup from './pages/Signup';
 import RecruiterDashboard from './pages/RecruiterDashboard';
 import CandidateDashboard from './pages/CandidateDashboard';
-import TestAssessment from './pages/TestAssessment';
 import CreateJob from './pages/CreateJob';
-import ProtectedRoute from './components/ProtectedRoute';
+import TestPage from './pages/TestPage';
+import ResultPage from './pages/ResultPage';
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
+    <AuthProvider>
+      <Router>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<Landing />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
 
-        {/* Recruiter Protected Routes */}
-        <Route element={<ProtectedRoute allowedRoles={['recruiter']} />}>
-          <Route path="/recruiter-dashboard" element={<RecruiterDashboard />} />
-          <Route path="/create-job" element={<CreateJob />} />
-        </Route>
+          {/* Protected Recruiter Routes */}
+          <Route path="/recruiter-dashboard" element={
+            <ProtectedRoute requiredRole="recruiter">
+              <RecruiterDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/create-job" element={
+            <ProtectedRoute requiredRole="recruiter">
+              <CreateJob />
+            </ProtectedRoute>
+          } />
 
-        {/* Candidate Protected Routes */}
-        <Route element={<ProtectedRoute allowedRoles={['candidate']} />}>
-          <Route path="/candidate-dashboard" element={<CandidateDashboard />} />
-          <Route path="/assessment" element={<TestAssessment />} />
-        </Route>
+          {/* Protected Candidate Routes */}
+          <Route path="/candidate-dashboard" element={
+            <ProtectedRoute requiredRole="candidate">
+              <CandidateDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/test/:jobId" element={
+            <ProtectedRoute requiredRole="candidate">
+              <TestPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/result/:jobId" element={
+            <ProtectedRoute requiredRole="candidate">
+              <ResultPage />
+            </ProtectedRoute>
+          } />
 
-        {/* Redirect legacy /dashboard based on role if logged in, otherwise to login */}
-        <Route path="/dashboard" element={<Navigate to="/login" replace />} />
-      </Routes>
-    </Router>
+           {/* Redirects */}
+           <Route path="/dashboard" element={<Navigate to="/login" replace />} />
+           <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
 
