@@ -4,6 +4,7 @@ import Landing from './pages/Landing';
 import Login from './pages/Login';
 import RecruiterDashboard from './pages/RecruiterDashboard';
 import CandidateDashboard from './pages/CandidateDashboard';
+import TestAssessment from './pages/TestAssessment';
 
 function App() {
   return (
@@ -13,7 +14,9 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/recruiter-dashboard" element={<RecruiterDashboard />} />
         <Route path="/candidate-dashboard" element={<CandidateDashboard />} />
-        <Route path="/dashboard" element={<Navigate to="/login" replace />} />
+        <Route path="/assessment" element={<TestAssessment />} />
+        {/* Redirect legacy /dashboard to recruiter dashboard for now, or login */}
+        <Route path="/dashboard" element={<Navigate to="/recruiter-dashboard" replace />} />
       </Routes>
     </Router>
   );
