@@ -4,17 +4,41 @@ import { User, Briefcase, Eye, EyeOff, Info } from 'lucide-react';
 
 const Login = () => {
   const navigate = useNavigate();
-  const [role, setRole] = useState('candidate'); // 'candidate' or 'recruiter'
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showDemocreds, setShowDemoCreds] = useState(false);
 
-  // SAP-style minimal colors
-  const activeColor = role === 'recruiter' ? 'bg-blue-600' : 'bg-indigo-600';
-  const ringColor = role === 'recruiter' ? 'focus:ring-blue-500' : 'focus:ring-indigo-500';
+  // Auto-detect role for UI styling purposes (optional, visual cue)
+  const isRecruiterEmail = email.toLowerCase().includes('recruiter');
+  
+  // SAP-style minimal colors based on detected role
+  const activeColor = isRecruiterEmail ? 'bg-blue-600' : 'bg-indigo-600';
+  const ringColor = isRecruiterEmail ? 'focus:ring-blue-500' : 'focus:ring-indigo-500';
 
   const handleLogin = (e) => {
-    e.preventDefault();
-    navigate('/dashboard');
+    if (e) e.preventDefault();
+    
+    // Simple mock logic: if email contains 'recruiter', go to recruiter dashboard
+    if (email.toLowerCase().includes('recruiter')) {
+        navigate('/recruiter-dashboard');
+    } else {
+        navigate('/candidate-dashboard');
+    }
+  };
+
+  const handleDemoLogin = (demoEmail) => {
+      setEmail(demoEmail);
+      setPassword('password123');
+      
+      // Auto login effect
+      setTimeout(() => {
+          if (demoEmail.toLowerCase().includes('recruiter')) {
+              navigate('/recruiter-dashboard');
+          } else {
+              navigate('/candidate-dashboard');
+          }
+      }, 300); // Small delay for visual feedback
   };
 
   const DemoAccounts = {
@@ -41,34 +65,12 @@ const Login = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className={`p-3 rounded-xl ${role === 'recruiter' ? 'bg-blue-50 text-blue-600' : 'bg-indigo-50 text-indigo-600'} transition-colors duration-300`}>
-              {role === 'recruiter' ? <Briefcase size={32} /> : <User size={32} />}
+            <div className={`p-3 rounded-xl ${isRecruiterEmail ? 'bg-blue-50 text-blue-600' : 'bg-indigo-50 text-indigo-600'} transition-all duration-300`}>
+              {isRecruiterEmail ? <Briefcase size={32} /> : <User size={32} />}
             </div>
           </div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">IntelliHire</h1>
           <p className="text-sm text-gray-500 mt-2">AI-Driven Intelligent Hiring Platform</p>
-        </div>
-
-        {/* Role Toggle */}
-        <div className="flex bg-gray-100 p-1 rounded-lg mb-8">
-          <button
-            onClick={() => setRole('candidate')}
-            className={`flex-1 flex items-center justify-center py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
-              role === 'candidate' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <User size={16} className="mr-2" />
-            Candidate
-          </button>
-          <button
-            onClick={() => setRole('recruiter')}
-            className={`flex-1 flex items-center justify-center py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
-              role === 'recruiter' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <Briefcase size={16} className="mr-2" />
-            Recruiter
-          </button>
         </div>
 
         {/* Form */}
@@ -79,8 +81,10 @@ const Login = () => {
               <input
                 type="email"
                 required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className={`block w-full pl-3 pr-3 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 ${ringColor} focus:border-transparent transition-shadow sm:text-sm`}
-                placeholder={role === 'recruiter' ? 'recruiter@intellihire.com' : 'candidate@intellihire.com'}
+                placeholder="name@intellihire.com"
               />
             </div>
           </div>
@@ -91,6 +95,8 @@ const Login = () => {
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className={`block w-full pl-3 pr-10 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 ${ringColor} focus:border-transparent transition-shadow sm:text-sm`}
                 placeholder="••••••••"
               />
@@ -113,7 +119,6 @@ const Login = () => {
         </form>
 
         <div className="mt-6 flex flex-col items-center gap-4 text-sm max-w-xs mx-auto">
-          {/* Register button removed as requested */}
           <a href="/" className="text-gray-500 hover:text-gray-900 transition-colors">
             &larr; Back to Landing Page
           </a>
@@ -138,11 +143,15 @@ const Login = () => {
                    <User size={14} /> Candidates
                 </h3>
                 <ul className="text-xs space-y-1 text-gray-600">
-                   {DemoAccounts.candidate.map(email => (
-                      <li key={email} className="font-mono">{email}</li>
+                   {DemoAccounts.candidate.map(e => (
+                      <li key={e} 
+                          onClick={() => handleDemoLogin(e)}
+                          className="font-mono cursor-pointer hover:text-indigo-600 hover:bg-indigo-50 p-1 rounded transition-colors"
+                          title="Click to auto-login">
+                          {e}
+                      </li>
                    ))}
                 </ul>
-                <div className="mt-2 text-xs text-gray-400 border-t pt-2">Password: password123</div>
              </div>
 
              {/* Recruiter Accounts */}
@@ -151,11 +160,15 @@ const Login = () => {
                    <Briefcase size={14} /> Recruiters
                 </h3>
                 <ul className="text-xs space-y-1 text-gray-600">
-                   {DemoAccounts.recruiter.map(email => (
-                      <li key={email} className="font-mono">{email}</li>
+                   {DemoAccounts.recruiter.map(e => (
+                      <li key={e} 
+                          onClick={() => handleDemoLogin(e)}
+                          className="font-mono cursor-pointer hover:text-blue-600 hover:bg-blue-50 p-1 rounded transition-colors"
+                          title="Click to auto-login">
+                          {e}
+                      </li>
                    ))}
                 </ul>
-                <div className="mt-2 text-xs text-gray-400 border-t pt-2">Password: password123</div>
              </div>
           </div>
         )}

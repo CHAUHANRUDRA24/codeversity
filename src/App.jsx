@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
+import RecruiterDashboard from './pages/RecruiterDashboard';
+import CandidateDashboard from './pages/CandidateDashboard';
 
 function App() {
   return (
@@ -10,7 +11,9 @@ function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/recruiter-dashboard" element={<RecruiterDashboard />} />
+        <Route path="/candidate-dashboard" element={<CandidateDashboard />} />
+        <Route path="/dashboard" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
   );
