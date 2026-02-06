@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import { doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 
+import { demoUsers } from '../data/demoUsers';
+
 const Login = () => {
   const navigate = useNavigate();
   const { login, signup } = useAuth(); 
@@ -16,20 +18,10 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [showDevPanel, setShowDevPanel] = useState(false);
 
-  // Dev Accounts Configuration
+  // Dev Accounts Configuration (Mapped from shared source)
   const DEV_ACCOUNTS = {
-    recruiters: Array.from({ length: 5 }, (_, i) => ({
-        email: `recruiter${i+1}@demo.com`,
-        password: 'demo123',
-        role: 'recruiter',
-        label: `Recruiter User ${i+1}`
-    })),
-    candidates: Array.from({ length: 5 }, (_, i) => ({
-        email: `candidate${i+1}@demo.com`,
-        password: 'demo123',
-        role: 'candidate',
-        label: `Candidate User ${i+1}`
-    }))
+    recruiters: demoUsers.recruiters.map(u => ({ ...u, label: u.name })),
+    candidates: demoUsers.candidates.map(u => ({ ...u, label: u.name }))
   };
 
   const handleLogin = async (e) => {
@@ -84,29 +76,11 @@ const Login = () => {
       }
   };
 
-  const handleSmartLogin = async (account) => {
-    setError('');
-    setLoading(true);
-    
-    try {
-        // 1. Try Login
-        await login(account.email, account.password);
-        await checkAndRepairProfile(auth.currentUser?.uid, account.email);
-    } catch (err) {
-        // 2. If User Not Found -> Create It (Signup)
-        if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-            try {
-                await signup(account.email, account.password, account.role);
-                // Redirect based on role
-                navigate(account.role === 'recruiter' ? '/recruiter-dashboard' : '/candidate-dashboard');
-            } catch (createErr) {
-                setError('Failed to create account: ' + createErr.message);
-            }
-        } else {
-            setError('Login failed: ' + err.message);
-        }
-    }
-    setLoading(false);
+  const handleDevAutoFill = (account) => {
+    setEmail(account.email);
+    setPassword(account.password);
+    // Optional: Auto-submit for convenience, but using the standard login function
+    performLogin(account.email, account.password); 
   };
 
   return (
@@ -125,7 +99,7 @@ const Login = () => {
           {showDevPanel && (
               <div className="absolute bottom-14 right-0 w-80 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in slide-in-from-bottom-4">
                   <div className="bg-slate-800 text-white p-3 flex justify-between items-center">
-                      <span className="font-bold text-sm">Quick Test Accounts</span>
+                      <span className="font-bold text-sm">Select User (Verified)</span>
                       <button onClick={() => setShowDevPanel(false)} className="hover:text-red-400"><span className="material-symbols-outlined text-sm">close</span></button>
                   </div>
                   <div className="p-4 max-h-[60vh] overflow-y-auto">
@@ -133,9 +107,9 @@ const Login = () => {
                           <h3 className="text-xs font-bold text-slate-500 uppercase mb-2">Recruiters</h3>
                           <div className="space-y-2">
                               {DEV_ACCOUNTS.recruiters.map((acc, idx) => (
-                                  <button key={idx} onClick={() => handleSmartLogin(acc)} disabled={loading} className="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-blue-50 text-slate-700 border border-slate-100 flex items-center justify-between group">
+                                  <button key={idx} onClick={() => handleDevAutoFill(acc)} disabled={loading} className="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-blue-50 text-slate-700 border border-slate-100 flex items-center justify-between group">
                                       <span>{acc.label}</span>
-                                      <span className="material-symbols-outlined text-transparent group-hover:text-blue-600 text-[18px]">login</span>
+                                      <span className="material-symbols-outlined text-transparent group-hover:text-blue-600 text-[18px]">key</span>
                                   </button>
                               ))}
                           </div>
@@ -144,9 +118,9 @@ const Login = () => {
                           <h3 className="text-xs font-bold text-slate-500 uppercase mb-2">Candidates</h3>
                           <div className="space-y-2">
                               {DEV_ACCOUNTS.candidates.map((acc, idx) => (
-                                  <button key={idx} onClick={() => handleSmartLogin(acc)} disabled={loading} className="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-indigo-50 text-slate-700 border border-slate-100 flex items-center justify-between group">
+                                  <button key={idx} onClick={() => handleDevAutoFill(acc)} disabled={loading} className="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-indigo-50 text-slate-700 border border-slate-100 flex items-center justify-between group">
                                       <span>{acc.label}</span>
-                                      <span className="material-symbols-outlined text-transparent group-hover:text-indigo-600 text-[18px]">login</span>
+                                      <span className="material-symbols-outlined text-transparent group-hover:text-indigo-600 text-[18px]">key</span>
                                   </button>
                               ))}
                           </div>
