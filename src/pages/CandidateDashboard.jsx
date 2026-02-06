@@ -10,10 +10,19 @@ import {
     Lock,
     MoreHorizontal,
     Play,
-    User
+    User,
+    LogOut
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const CandidateDashboard = () => {
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        sessionStorage.removeItem('userRole');
+        navigate('/login');
+    };
+
     return (
         <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
             {/* Navbar */}
@@ -46,6 +55,13 @@ const CandidateDashboard = () => {
                                 alt="Profile"
                                 className="h-10 w-10 rounded-full bg-slate-200 object-cover ring-2 ring-white"
                             />
+                            <button
+                                onClick={handleLogout}
+                                className="ml-2 text-slate-400 hover:text-red-500 transition-colors"
+                                title="Sign out"
+                            >
+                                <LogOut className="h-5 w-5" />
+                            </button>
                         </div>
                     </div>
                 </div>

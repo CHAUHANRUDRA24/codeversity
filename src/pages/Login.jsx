@@ -11,34 +11,38 @@ const Login = () => {
 
   // Auto-detect role for UI styling purposes (optional, visual cue)
   const isRecruiterEmail = email.toLowerCase().includes('recruiter');
-  
+
   // SAP-style minimal colors based on detected role
   const activeColor = isRecruiterEmail ? 'bg-blue-600' : 'bg-indigo-600';
   const ringColor = isRecruiterEmail ? 'focus:ring-blue-500' : 'focus:ring-indigo-500';
 
   const handleLogin = (e) => {
     if (e) e.preventDefault();
-    
+
     // Simple mock logic: if email contains 'recruiter', go to recruiter dashboard
     if (email.toLowerCase().includes('recruiter')) {
-        navigate('/recruiter-dashboard');
+      sessionStorage.setItem('userRole', 'recruiter');
+      navigate('/recruiter-dashboard');
     } else {
-        navigate('/candidate-dashboard');
+      sessionStorage.setItem('userRole', 'candidate');
+      navigate('/candidate-dashboard');
     }
   };
 
   const handleDemoLogin = (demoEmail) => {
-      setEmail(demoEmail);
-      setPassword('password123');
-      
-      // Auto login effect
-      setTimeout(() => {
-          if (demoEmail.toLowerCase().includes('recruiter')) {
-              navigate('/recruiter-dashboard');
-          } else {
-              navigate('/candidate-dashboard');
-          }
-      }, 300); // Small delay for visual feedback
+    setEmail(demoEmail);
+    setPassword('password123');
+
+    // Auto login effect
+    setTimeout(() => {
+      if (demoEmail.toLowerCase().includes('recruiter')) {
+        sessionStorage.setItem('userRole', 'recruiter');
+        navigate('/recruiter-dashboard');
+      } else {
+        sessionStorage.setItem('userRole', 'candidate');
+        navigate('/candidate-dashboard');
+      }
+    }, 300); // Small delay for visual feedback
   };
 
   const DemoAccounts = {
@@ -61,7 +65,7 @@ const Login = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 py-8">
       <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 border border-gray-100">
-        
+
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
@@ -127,7 +131,7 @@ const Login = () => {
 
       {/* Demo Credentials Section */}
       <div className="mt-8 max-w-md w-full">
-        <button 
+        <button
           onClick={() => setShowDemoCreds(!showDemocreds)}
           className="w-full flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors mb-4"
         >
@@ -137,39 +141,39 @@ const Login = () => {
 
         {showDemocreds && (
           <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
-             {/* Candidate Accounts */}
-             <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                <h3 className="font-semibold text-indigo-600 mb-2 flex items-center gap-2">
-                   <User size={14} /> Candidates
-                </h3>
-                <ul className="text-xs space-y-1 text-gray-600">
-                   {DemoAccounts.candidate.map(e => (
-                      <li key={e} 
-                          onClick={() => handleDemoLogin(e)}
-                          className="font-mono cursor-pointer hover:text-indigo-600 hover:bg-indigo-50 p-1 rounded transition-colors"
-                          title="Click to auto-login">
-                          {e}
-                      </li>
-                   ))}
-                </ul>
-             </div>
+            {/* Candidate Accounts */}
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="font-semibold text-indigo-600 mb-2 flex items-center gap-2">
+                <User size={14} /> Candidates
+              </h3>
+              <ul className="text-xs space-y-1 text-gray-600">
+                {DemoAccounts.candidate.map(e => (
+                  <li key={e}
+                    onClick={() => handleDemoLogin(e)}
+                    className="font-mono cursor-pointer hover:text-indigo-600 hover:bg-indigo-50 p-1 rounded transition-colors"
+                    title="Click to auto-login">
+                    {e}
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-             {/* Recruiter Accounts */}
-             <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                <h3 className="font-semibold text-blue-600 mb-2 flex items-center gap-2">
-                   <Briefcase size={14} /> Recruiters
-                </h3>
-                <ul className="text-xs space-y-1 text-gray-600">
-                   {DemoAccounts.recruiter.map(e => (
-                      <li key={e} 
-                          onClick={() => handleDemoLogin(e)}
-                          className="font-mono cursor-pointer hover:text-blue-600 hover:bg-blue-50 p-1 rounded transition-colors"
-                          title="Click to auto-login">
-                          {e}
-                      </li>
-                   ))}
-                </ul>
-             </div>
+            {/* Recruiter Accounts */}
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="font-semibold text-blue-600 mb-2 flex items-center gap-2">
+                <Briefcase size={14} /> Recruiters
+              </h3>
+              <ul className="text-xs space-y-1 text-gray-600">
+                {DemoAccounts.recruiter.map(e => (
+                  <li key={e}
+                    onClick={() => handleDemoLogin(e)}
+                    className="font-mono cursor-pointer hover:text-blue-600 hover:bg-blue-50 p-1 rounded transition-colors"
+                    title="Click to auto-login">
+                    {e}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         )}
       </div>

@@ -6,6 +6,7 @@ import RecruiterDashboard from './pages/RecruiterDashboard';
 import CandidateDashboard from './pages/CandidateDashboard';
 import TestAssessment from './pages/TestAssessment';
 import CreateJob from './pages/CreateJob';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
@@ -13,12 +14,21 @@ function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/recruiter-dashboard" element={<RecruiterDashboard />} />
-        <Route path="/candidate-dashboard" element={<CandidateDashboard />} />
-        <Route path="/assessment" element={<TestAssessment />} />
-        <Route path="/create-job" element={<CreateJob />} />
-        {/* Redirect legacy /dashboard to recruiter dashboard for now, or login */}
-        <Route path="/dashboard" element={<Navigate to="/recruiter-dashboard" replace />} />
+
+        {/* Recruiter Protected Routes */}
+        <Route element={<ProtectedRoute allowedRoles={['recruiter']} />}>
+          <Route path="/recruiter-dashboard" element={<RecruiterDashboard />} />
+          <Route path="/create-job" element={<CreateJob />} />
+        </Route>
+
+        {/* Candidate Protected Routes */}
+        <Route element={<ProtectedRoute allowedRoles={['candidate']} />}>
+          <Route path="/candidate-dashboard" element={<CandidateDashboard />} />
+          <Route path="/assessment" element={<TestAssessment />} />
+        </Route>
+
+        {/* Redirect legacy /dashboard based on role if logged in, otherwise to login */}
+        <Route path="/dashboard" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
   );
