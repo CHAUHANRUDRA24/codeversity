@@ -89,7 +89,7 @@ const RecruiterDashboard = () => {
                             <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-gray-900"></span>
                         </button>
                         {/* Create Job Button */}
-                        <button className="hidden sm:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm shadow-blue-600/30 border-none cursor-pointer">
+                        <button onClick={() => navigate('/create-job')} className="hidden sm:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm shadow-blue-600/30 border-none cursor-pointer">
                             <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>add</span>
                             Create New Job
                         </button>

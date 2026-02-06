@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import RecruiterDashboard from './pages/RecruiterDashboard';
 import CandidateDashboard from './pages/CandidateDashboard';
 import TestAssessment from './pages/TestAssessment';
+import CreateJob from './pages/CreateJob';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/recruiter-dashboard" element={<RecruiterDashboard />} />
         <Route path="/candidate-dashboard" element={<CandidateDashboard />} />
         <Route path="/assessment" element={<TestAssessment />} />
+        <Route path="/create-job" element={<CreateJob />} />
         {/* Redirect legacy /dashboard to recruiter dashboard for now, or login */}
         <Route path="/dashboard" element={<Navigate to="/recruiter-dashboard" replace />} />
       </Routes>
