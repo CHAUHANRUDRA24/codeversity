@@ -474,6 +474,138 @@ const RecruiterDashboard = () => {
                                     </div>
                                 </div>
 
+                                {/* Explainable Rejection Engine - New Feature */}
+                                {selectedCandidate.aiEvaluation?.rejectionReason && (
+                                    <div className="bg-[#151b2b] p-6 rounded-3xl border border-slate-800/50 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                        <div className="flex items-center gap-3">
+                                            <BrainCircuit className="w-5 h-5 text-purple-500" />
+                                            <h4 className="text-slate-300 font-black text-xs uppercase tracking-widest">AI Decision Support</h4>
+                                        </div>
+
+                                        <div className={`p-5 rounded-2xl border ${selectedCandidate.aiEvaluation.rejectionReason.status === 'Accepted' ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-red-500/5 border-red-500/20'}`}>
+                                            <div className="flex items-start gap-4">
+                                                <div className={`mt-1 p-2 rounded-lg ${selectedCandidate.aiEvaluation.rejectionReason.status === 'Accepted' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'}`}>
+                                                    {selectedCandidate.aiEvaluation.rejectionReason.status === 'Accepted' ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h5 className={`font-black text-sm uppercase tracking-wide mb-1 ${selectedCandidate.aiEvaluation.rejectionReason.status === 'Accepted' ? 'text-emerald-500' : 'text-red-500'}`}>
+                                                        {selectedCandidate.aiEvaluation.rejectionReason.status === 'Accepted' ? 'Candidate Accepted' : 'Decision: Rejected because...'}
+                                                    </h5>
+                                                    <p className="text-slate-300 text-sm leading-relaxed font-medium">
+                                                        {selectedCandidate.aiEvaluation.rejectionReason.reason}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-6 border-t border-slate-800/50">
+                                                <div>
+                                                    <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                                        <Sparkles className="w-3 h-3" /> Key Strengths
+                                                    </p>
+                                                    <ul className="space-y-2">
+                                                        {selectedCandidate.aiEvaluation.rejectionReason.strengths?.map((s, i) => (
+                                                            <li key={i} className="text-xs text-slate-400 flex items-start gap-2">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/40 mt-1 shrink-0" />
+                                                                {s}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                                        <AlertTriangle className="w-3 h-3" /> Growth Areas
+                                                    </p>
+                                                    <ul className="space-y-2">
+                                                        {selectedCandidate.aiEvaluation.rejectionReason.weaknesses?.map((w, i) => (
+                                                            <li key={i} className="text-xs text-slate-400 flex items-start gap-2">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-red-500/40 mt-1 shrink-0" />
+                                                                {w}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Integrity Flags Detected */}
+                                {selectedCandidate.tabSwitchViolation && (
+                                    <div className="bg-red-500/10 border border-red-500/20 rounded-3xl p-6 flex flex-col gap-4">
+                                        <div className="flex items-center gap-3">
+                                            <AlertTriangle className="w-6 h-6 text-red-500" />
+                                            <h4 className="text-red-500 font-black text-sm uppercase tracking-widest">Integrity Flags Detected</h4>
+                                        </div>
+                                        <p className="text-red-400 text-xs font-medium">
+                                            Our proctoring system flagged this submission for manual review due to the following anomalies:
+                                        </p>
+                                        <div className="flex gap-3">
+                                            <div className="px-3 py-1.5 bg-red-500/20 rounded-lg border border-red-500/30 text-[10px] font-black uppercase tracking-widest text-red-400">
+                                                Moderate Tab Switching
+                                            </div>
+                                            <div className="px-3 py-1.5 bg-red-500/20 rounded-lg border border-red-500/30 text-[10px] font-black uppercase tracking-widest text-red-400">
+                                                Manual Review Recommended
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Response Analysis - Image 4 Design */}
+                                {selectedJob && selectedJob.questions && (
+                                    <div className="space-y-6">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <h4 className="text-slate-300 font-black text-xs uppercase tracking-widest">Response Analysis</h4>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            {selectedJob.questions.map((q, idx) => {
+                                                const details = selectedCandidate.aiEvaluation?.details || [];
+                                                const answerDetail = details.find(d => d.questionId === q.id) || details[idx];
+                                                const isSkipped = !answerDetail?.userAnswer;
+                                                const displayedAnswer = isSkipped ? 'SKIPPED' : (typeof answerDetail?.userAnswer === 'string' ? answerDetail.userAnswer : JSON.stringify(answerDetail?.userAnswer));
+
+                                                const isCorrect = answerDetail?.isCorrect || (answerDetail?.score >= 1);
+                                                const answerColorClass = isSkipped
+                                                    ? 'text-orange-500'
+                                                    : isCorrect
+                                                        ? 'text-emerald-500'
+                                                        : 'text-red-500';
+
+                                                return (
+                                                    <div key={idx} className="bg-white dark:bg-[#151b2b] p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-6 items-start">
+                                                        <div className="flex-shrink-0">
+                                                            <div className="h-10 w-10 bg-amber-50 dark:bg-amber-900/20 rounded-xl flex items-center justify-center font-black text-amber-600 dark:text-amber-500 text-sm border border-amber-100 dark:border-amber-800">
+                                                                {idx + 1}
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex-1 space-y-3 w-full text-left">
+                                                            <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm md:text-base leading-relaxed">
+                                                                {q.question}
+                                                            </h3>
+
+                                                            <div className="flex flex-col sm:flex-row gap-4 sm:gap-12 text-[10px] uppercase font-black tracking-widest w-full">
+                                                                <div className="flex items-center gap-2 min-w-0">
+                                                                    <span className="text-slate-400 flex-shrink-0">ANS:</span>
+                                                                    <span className={`truncate ${answerColorClass}`}>
+                                                                        {displayedAnswer}
+                                                                    </span>
+                                                                </div>
+
+                                                                <div className="flex items-center gap-2 min-w-0">
+                                                                    <span className="text-slate-400 flex-shrink-0">IDEAL:</span>
+                                                                    <span className="text-slate-600 dark:text-slate-400 truncate">
+                                                                        {q.correctAnswer || q.idealAnswer || 'N/A'}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Actions */}
                                 <div className="flex gap-4 pt-2">
                                     <button

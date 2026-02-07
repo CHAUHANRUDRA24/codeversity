@@ -1,11 +1,11 @@
-import { evaluateAnswer } from './aiService';
+import { evaluateAnswer, generateRejectionReason } from './aiService';
 
 export const gradeAssessment = async (job, answers) => {
     let totalScore = 0;
-    let totalMaxScore = job.questions.length; 
+    let totalMaxScore = job.questions.length;
     // Assuming 1 point per question for now, or we can weight them.
     // Let's stick to the current logic: 1 point per question.
-    
+
     const results = {
         details: [],
         totalScore: 0,
@@ -16,7 +16,7 @@ export const gradeAssessment = async (job, answers) => {
     // We process sequentially or parallel. Parallel is faster.
     const gradingPromises = job.questions.map(async (q, index) => {
         const userAnswer = answers[index];
-        
+
         let result = {
             questionId: q.id,
             type: q.type,
@@ -46,13 +46,13 @@ export const gradeAssessment = async (job, answers) => {
                 // Determine context based on question type
                 const context = q.type === 'coding' ? q.description : q.question;
                 const aiEvaluation = await evaluateAnswer(q.question, userAnswer, q.type, context);
-                
+
                 // Normalize AI score (0-10) to our 1-point scale
                 // If AI gives >= 7/10, we count it as correct (1 point)
                 // Or we can start using fractional scores? 
                 // Let's stick to 1 point max for consistency with existing system, 
                 // but store the detailed AI score for analytics.
-                
+
                 result.aiScore = aiEvaluation.score; // 0-10
                 result.feedback = aiEvaluation.feedback;
                 result.credibility = aiEvaluation.credibility;
@@ -77,6 +77,7 @@ export const gradeAssessment = async (job, answers) => {
     results.details = gradedQuestions;
     results.totalScore = gradedQuestions.reduce((sum, q) => sum + q.score, 0);
 
+
     // Calculate average credibility (only for AI-graded questions that have it)
     const aiGradedQuestions = gradedQuestions.filter(q => q.credibility !== undefined);
     if (aiGradedQuestions.length > 0) {
@@ -85,6 +86,14 @@ export const gradeAssessment = async (job, answers) => {
     } else {
         results.credibilityScore = 100; // Default if no AI questions (e.g. all MCQ)
     }
-    
+
+    try {
+        const rejectionAnalysis = await generateRejectionReason(job.title, job.description, results);
+        results.rejectionReason = rejectionAnalysis;
+    } catch (error) {
+        console.error("Error generating rejection analysis:", error);
+    }
+
     return results;
 };
+

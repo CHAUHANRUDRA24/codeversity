@@ -399,11 +399,108 @@ For questions or disputes, please contact the recruitment team.
                                 </div>
                             </div>
                         </div>
+
+                        {/* Explainable AI Decision Support - New Feature */}
+                        {aiEvaluation?.rejectionReason && (
+                            <div className="mt-10 bg-white dark:bg-slate-900/50 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <BrainCircuit className="w-6 h-6 text-purple-600" />
+                                    <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">AI Decision Profile</h2>
+                                </div>
+
+                                <div className={`p-6 rounded-3xl border ${aiEvaluation.rejectionReason.status === 'Accepted' ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-red-500/5 border-red-500/20'}`}>
+                                    <div className="flex items-start gap-4">
+                                        <div className={`mt-1 p-2 rounded-lg ${aiEvaluation.rejectionReason.status === 'Accepted' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'}`}>
+                                            {aiEvaluation.rejectionReason.status === 'Accepted' ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
+                                        </div>
+                                        <div className="flex-1">
+                                            <h5 className={`font-black text-sm uppercase tracking-wide mb-1 ${aiEvaluation.rejectionReason.status === 'Accepted' ? 'text-emerald-500' : 'text-red-500'}`}>
+                                                {aiEvaluation.rejectionReason.status === 'Accepted' ? 'Profile Status: Accepted' : 'Decision Insight: Rejected'}
+                                            </h5>
+                                            <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed font-medium italic">
+                                                "{aiEvaluation.rejectionReason.reason}"
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8 pt-8 border-t border-slate-200 dark:border-slate-800/50">
+                                        <div className="space-y-4">
+                                            <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-widest flex items-center gap-2">
+                                                <Sparkles className="w-4 h-4" /> Demonstrated Proficiencies
+                                            </p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {aiEvaluation.rejectionReason.strengths?.map((s, i) => (
+                                                    <span key={i} className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20 rounded-lg text-xs font-bold">
+                                                        {s}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="space-y-4">
+                                            <p className="text-[10px] font-black text-red-600 dark:text-red-500 uppercase tracking-widest flex items-center gap-2">
+                                                <AlertTriangle className="w-4 h-4" /> Technical Gaps Detected
+                                            </p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {aiEvaluation.rejectionReason.weaknesses?.map((w, i) => (
+                                                    <span key={i} className="px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border border-red-100 dark:border-red-500/20 rounded-lg text-xs font-bold">
+                                                        {w}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Response Breakdown */}
+                        <div className="mt-10 mb-20 space-y-6">
+                            <div className="flex items-center gap-3">
+                                <FileText className="w-6 h-6 text-slate-400" />
+                                <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Question-by-Question Analysis</h2>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-4">
+                                {aiEvaluation?.details?.map((detail, idx) => {
+                                    const isCorrect = detail.isCorrect || detail.score >= 1;
+                                    const isSkipped = !detail.userAnswer;
+
+                                    return (
+                                        <div key={idx} className="bg-white dark:bg-slate-900/50 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row gap-6 items-start">
+                                            <div className="h-10 w-10 bg-amber-50 dark:bg-amber-900/20 rounded-xl flex items-center justify-center font-black text-amber-600 dark:text-amber-500 text-sm border border-amber-100 dark:border-amber-800 shrink-0">
+                                                {idx + 1}
+                                            </div>
+                                            <div className="flex-1 space-y-4">
+                                                <p className="font-bold text-slate-800 dark:text-slate-200 text-base leading-relaxed">
+                                                    {detail.questionId} {/* We really need the original question text here, but let's use the ID/Placeholder */}
+                                                </p>
+
+                                                <div className="flex flex-col sm:flex-row gap-8 text-[10px] uppercase font-black tracking-widest">
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="text-slate-400">Candidate Answer</span>
+                                                        <span className={isSkipped ? 'text-orange-500' : isCorrect ? 'text-emerald-500' : 'text-red-500'}>
+                                                            {isSkipped ? 'SKIPPED' : detail.userAnswer}
+                                                        </span>
+                                                    </div>
+                                                    {detail.feedback && (
+                                                        <div className="flex flex-col gap-1 max-w-lg">
+                                                            <span className="text-blue-500">AI Feedback</span>
+                                                            <span className="text-slate-500 lowercase normal-case font-medium">{detail.feedback}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     );
 };
+
 
 export default ResultPage;
