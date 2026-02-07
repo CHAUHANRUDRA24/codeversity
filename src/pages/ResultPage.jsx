@@ -109,8 +109,8 @@ const ResultPage = () => {
         recommendation: aiData.integrityAnalysis?.conclusion || aiData.recommendation || (isPass ? "Highly Recommended / Credible" : "Skill Alignment Revision Required")
     };
 
-    const credibilityScore = credibilityData.credibilityScore.toFixed(0);
-    const mismatchScore = (100 - credibilityScore).toFixed(0);
+    const credibilityScore = (credibilityData.credibilityScore || 0).toFixed(0);
+    const mismatchScore = (100 - (credibilityData.credibilityScore || 0)).toFixed(0);
 
     const downloadDetailedAudit = () => {
         // Generate detailed audit report
@@ -339,7 +339,7 @@ For questions or disputes, please contact the recruitment team.
                                     />
                                 </svg>
                                 <div className="absolute flex flex-col items-center">
-                                    <span className="text-5xl font-black dark:text-white tracking-tighter">{result.percentage.toFixed(0)}%</span>
+                                    <span className="text-5xl font-black dark:text-white tracking-tighter">{(result?.percentage || 0).toFixed(0)}%</span>
                                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Score</span>
                                 </div>
                             </div>

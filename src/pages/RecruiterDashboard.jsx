@@ -467,7 +467,7 @@ const RecruiterDashboard = () => {
                                                         </td>
                                                         <td className="px-8 py-6">
                                                             <div className="flex items-center gap-4">
-                                                                <span className="font-black text-slate-900 dark:text-white w-10">{candidate.percentage.toFixed(0)}%</span>
+                                                                <span className="font-black text-slate-900 dark:text-white w-10">{(candidate.percentage || 0).toFixed(0)}%</span>
                                                                 <div className="h-1.5 w-32 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                                                     <div className={`h-full transition-all duration-1000 ${candidate.percentage >= qualificationThreshold ? 'bg-emerald-500' : 'bg-rose-500'}`} style={{ width: `${candidate.percentage}%` }}></div>
                                                                 </div>
@@ -828,28 +828,28 @@ const RecruiterDashboard = () => {
                                                         : 'text-red-500';
 
                                                 return (
-                                                    <div key={idx} className="bg-white dark:bg-[#151b2b] p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-6 items-start">
+                                                    <div key={idx} className="bg-[#151b2b]/40 backdrop-blur-sm p-6 rounded-3xl border border-slate-800/40 hover:border-slate-700/60 hover:bg-[#151b2b]/60 transition-all duration-300 flex flex-col md:flex-row gap-6 items-start group">
                                                         <div className="flex-shrink-0">
-                                                            <div className="h-10 w-10 bg-amber-50 dark:bg-amber-900/20 rounded-xl flex items-center justify-center font-black text-amber-600 dark:text-amber-500 text-sm border border-amber-100 dark:border-amber-800">
+                                                            <div className="h-10 w-10 bg-amber-500/10 dark:bg-amber-900/20 rounded-xl flex items-center justify-center font-black text-amber-500 text-sm border border-amber-500/20 group-hover:scale-110 transition-transform">
                                                                 {idx + 1}
                                                             </div>
                                                         </div>
-                                                        <div className="flex-1 space-y-3 w-full text-left">
-                                                            <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm md:text-base leading-relaxed">
+                                                        <div className="flex-1 space-y-4 w-full text-left">
+                                                            <h3 className="font-bold text-slate-300 text-sm md:text-base leading-relaxed group-hover:text-white transition-colors">
                                                                 {q.question}
                                                             </h3>
 
-                                                            <div className="flex flex-col sm:flex-row gap-4 sm:gap-12 text-[10px] uppercase font-black tracking-widest w-full">
+                                                            <div className="flex flex-col sm:flex-row gap-4 sm:gap-12 text-[9px] uppercase font-black tracking-[0.2em] w-full border-t border-slate-800/50 pt-4">
                                                                 <div className="flex items-center gap-2 min-w-0">
-                                                                    <span className="text-slate-400 flex-shrink-0">ANS:</span>
-                                                                    <span className={`truncate ${answerColorClass}`}>
+                                                                    <span className="text-slate-500 flex-shrink-0">ANS:</span>
+                                                                    <span className={`truncate ${answerColorClass} bg-slate-800/50 px-2 py-1 rounded`}>
                                                                         {displayedAnswer}
                                                                     </span>
                                                                 </div>
 
                                                                 <div className="flex items-center gap-2 min-w-0">
-                                                                    <span className="text-slate-400 flex-shrink-0">IDEAL:</span>
-                                                                    <span className="text-slate-600 dark:text-slate-400 truncate">
+                                                                    <span className="text-slate-500 flex-shrink-0">IDEAL:</span>
+                                                                    <span className="text-slate-400 truncate opacity-60">
                                                                         {q.correctAnswer || q.idealAnswer || 'N/A'}
                                                                     </span>
                                                                 </div>
