@@ -9,6 +9,7 @@ import Signup from './pages/Signup';
 import RecruiterDashboard from './pages/RecruiterDashboard';
 import CandidateDashboard from './pages/CandidateDashboard';
 import CreateJob from './pages/CreateJob';
+import EditJob from './pages/EditJob';
 import TestPage from './pages/TestPage';
 import ResultPage from './pages/ResultPage';
 import AdminSetup from './pages/AdminSetup';
@@ -34,6 +35,11 @@ function App() {
           <Route path="/create-job" element={
             <ProtectedRoute requiredRole="recruiter">
               <CreateJob />
+            </ProtectedRoute>
+          } />
+          <Route path="/edit-job/:jobId" element={
+            <ProtectedRoute requiredRole="recruiter">
+              <EditJob />
             </ProtectedRoute>
           } />
 

@@ -1,23 +1,24 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { db, auth } from '../firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { generateAssessmentFromJD } from '../services/aiService';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
-import { Sparkles, CheckCircle, BrainCircuit, Code, FileText, CheckSquare, X, AlertOctagon } from 'lucide-react';
+import { Save, X, AlertOctagon } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 
-const CreateJob = () => {
+const EditJob = () => {
     const navigate = useNavigate();
+    const { jobId } = useParams();
     const { user, logout } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [loading, setLoading] = useState(true);
 
     const [jobTitle, setJobTitle] = useState('');
     const [jobDescription, setJobDescription] = useState('');
     const [experienceLevel, setExperienceLevel] = useState('Fresher (0-2 years)');
 
     // Assessment Configuration
-    const [duration, setDuration] = useState(60); // in minutes
+    const [duration, setDuration] = useState(60);
     const [difficultyLevel, setDifficultyLevel] = useState('Medium');
     const [mcqWeight, setMcqWeight] = useState(40);
     const [subjectiveWeight, setSubjectiveWeight] = useState(30);
@@ -29,13 +30,52 @@ const CreateJob = () => {
     const [autoShortlist, setAutoShortlist] = useState(true);
     const [maxApplicants, setMaxApplicants] = useState(50);
 
-    // State for the structured questions from generator
-    const [generatedSections, setGeneratedSections] = useState(null);
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [isPublishing, setIsPublishing] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState(null);
 
-    // Handle weight slider changes - ensure total = 100%
+    useEffect(() => {
+        const fetchJob = async () => {
+            try {
+                const jobRef = doc(db, "jobs", jobId);
+                const jobSnap = await getDoc(jobRef);
+
+                if (jobSnap.exists()) {
+                    const data = jobSnap.data();
+                    setJobTitle(data.title || '');
+                    setJobDescription(data.description || '');
+                    setExperienceLevel(data.experienceLevel || 'Fresher (0-2 years)');
+                    setDuration(data.duration || 60);
+                    setDifficultyLevel(data.difficultyLevel || 'Medium');
+
+                    if (data.questionWeightage) {
+                        setMcqWeight(data.questionWeightage.mcq || 40);
+                        setSubjectiveWeight(data.questionWeightage.subjective || 30);
+                        setCodingWeight(data.questionWeightage.coding || 30);
+                    }
+
+                    if (data.cutOffs) {
+                        setPassingCutOff(data.cutOffs.passing || 60);
+                        setQualifiedCutOff(data.cutOffs.qualified || 75);
+                    }
+
+                    setAutoShortlist(data.autoShortlist !== undefined ? data.autoShortlist : true);
+                    setMaxApplicants(data.maxApplicants || 50);
+                } else {
+                    setError("Job not found");
+                }
+            } catch (err) {
+                console.error("Error fetching job:", err);
+                setError("Failed to load job details");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (jobId) {
+            fetchJob();
+        }
+    }, [jobId]);
+
     const handleWeightChange = (type, value) => {
         const newValue = parseInt(value);
 
@@ -60,86 +100,59 @@ const CreateJob = () => {
         }
     };
 
-    // AI Handler
-    const handleGenerateValues = async () => {
-        if (!jobTitle || !jobDescription) {
-            alert("Please fill in Job Title and Description first.");
-            return;
-        }
-
-        setIsGenerating(true);
-        setGeneratedSections(null);
-        setError(null);
-
-        try {
-            const sections = await generateAssessmentFromJD(jobTitle, jobDescription, experienceLevel);
-            setGeneratedSections(sections);
-        } catch (err) {
-            console.error(err);
-            setError("Failed to generate assessment. Please check your API Key or try again.");
-        } finally {
-            setIsGenerating(false);
-        }
-    };
-
-    const handlePublish = async () => {
+    const handleSave = async () => {
         if (!jobTitle || !jobDescription) {
             alert("Please fill in all required fields");
             return;
         }
 
-        setIsPublishing(true);
+        setIsSaving(true);
         try {
-            if (auth.currentUser) {
-                // If questions are generated, use them, otherwise save config only
-                let finalQuestions = [];
+            const jobRef = doc(db, "jobs", jobId);
+            await updateDoc(jobRef, {
+                title: jobTitle,
+                description: jobDescription,
+                experienceLevel,
+                duration,
+                difficultyLevel,
+                questionWeightage: {
+                    mcq: mcqWeight,
+                    subjective: subjectiveWeight,
+                    coding: codingWeight
+                },
+                cutOffs: {
+                    passing: passingCutOff,
+                    qualified: qualifiedCutOff
+                },
+                autoShortlist,
+                maxApplicants,
+                minScore: passingCutOff
+            });
 
-                if (generatedSections) {
-                    finalQuestions = [
-                        ...generatedSections.mcqs.map(q => ({ ...q, type: 'mcq', id: Math.random().toString(36).substr(2, 9) })),
-                        ...generatedSections.subjective.map(q => ({ question: q, type: 'subjective', id: Math.random().toString(36).substr(2, 9) })),
-                        ...generatedSections.coding.map(q => ({ ...q, type: 'coding', id: Math.random().toString(36).substr(2, 9) }))
-                    ];
-                }
-
-                await addDoc(collection(db, "jobs"), {
-                    title: jobTitle,
-                    description: jobDescription,
-                    experienceLevel,
-                    duration,
-                    difficultyLevel,
-                    questionWeightage: {
-                        mcq: mcqWeight,
-                        subjective: subjectiveWeight,
-                        coding: codingWeight
-                    },
-                    cutOffs: {
-                        passing: passingCutOff,
-                        qualified: qualifiedCutOff
-                    },
-                    autoShortlist,
-                    maxApplicants,
-                    questions: finalQuestions,
-                    createdBy: auth.currentUser.uid,
-                    createdAt: serverTimestamp(),
-                    status: 'active',
-                    minScore: passingCutOff
-                });
-                navigate('/recruiter-dashboard');
-            } else {
-                alert("User not authenticated");
-            }
+            navigate('/recruiter-dashboard');
         } catch (error) {
-            console.error("Error creating job:", error);
-            alert("Failed to publish job. See console.");
+            console.error("Error updating job:", error);
+            setError("Failed to save changes. Please try again.");
+        } finally {
+            setIsSaving(false);
         }
-        setIsPublishing(false);
     };
 
     const handleLogout = async () => {
         await logout();
         navigate('/login');
     };
+
+    if (loading) {
+        return (
+            <div className="flex h-screen w-full items-center justify-center bg-[#0f1729] text-white">
+                <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-sm font-bold uppercase tracking-widest">Loading Assessment...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex h-screen w-full overflow-hidden bg-[#0f1729] text-slate-50 font-sans">
@@ -157,16 +170,29 @@ const CreateJob = () => {
                 {/* Header */}
                 <header className="h-20 bg-[#141d33] border-b border-slate-800 flex items-center justify-between px-8 z-10 shrink-0">
                     <div>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Assessment Generator</p>
-                        <h1 className="text-xl font-black text-white uppercase tracking-tight">Create New Assessment</h1>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Assessment Editor</p>
+                        <h1 className="text-xl font-black text-white uppercase tracking-tight">Edit Assessment</h1>
                     </div>
-                    <button onClick={() => navigate('/recruiter-dashboard')} className="flex items-center gap-2 px-4 py-2 text-xs font-black text-slate-400 bg-slate-800 border border-slate-700 rounded-xl hover:bg-slate-700 transition-all uppercase tracking-widest">
+                    <button
+                        onClick={() => navigate('/recruiter-dashboard')}
+                        className="flex items-center gap-2 px-4 py-2 text-xs font-black text-slate-400 bg-slate-800 border border-slate-700 rounded-xl hover:bg-slate-700 transition-all uppercase tracking-widest"
+                    >
                         <X className="w-4 h-4" />
                         Cancel
                     </button>
                 </header>
 
                 <div className="flex-1 overflow-auto p-8 space-y-8">
+                    {error && (
+                        <div className="p-4 bg-red-900/20 border border-red-800 rounded-xl flex items-center gap-3">
+                            <AlertOctagon className="w-5 h-5 text-red-400" />
+                            <div>
+                                <h4 className="text-sm font-black text-red-400 uppercase tracking-tight">Error</h4>
+                                <p className="text-xs text-red-300 font-medium">{error}</p>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Job Details Section */}
                     <div className="bg-[#1a2439] p-8 rounded-3xl border border-slate-800">
                         <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-6">Job Details</h2>
@@ -177,7 +203,7 @@ const CreateJob = () => {
                                 <input
                                     type="text"
                                     className="w-full px-4 py-3 border border-slate-700 bg-[#0f1729] rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium text-white"
-                                    placeholder="e.g. Senior Frontend Engineer"
+                                    placeholder="e.g. Senior Full Stack Engineer"
                                     value={jobTitle}
                                     onChange={(e) => setJobTitle(e.target.value)}
                                 />
@@ -200,7 +226,7 @@ const CreateJob = () => {
                                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Job Description</label>
                                 <textarea
                                     className="w-full px-4 py-3 border border-slate-700 bg-[#0f1729] rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-32 text-sm font-medium text-white resize-none"
-                                    placeholder="Paste the job description here. We will analyze keywords like 'React', 'Python', etc."
+                                    placeholder="Looking for an expert in React, NextJS, and AI integrations. You will lead our generative AI product pod."
                                     value={jobDescription}
                                     onChange={(e) => setJobDescription(e.target.value)}
                                 />
@@ -217,8 +243,8 @@ const CreateJob = () => {
                             {/* Duration Slider */}
                             <div>
                                 <div className="flex justify-between items-center mb-3">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Duration: {duration} Minutes</label>
-                                    <span className="text-sm font-bold text-blue-600">{duration} mins</span>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Duration: {duration} Minutes</label>
+                                    <span className="text-sm font-bold text-blue-400">{duration} mins</span>
                                 </div>
                                 <input
                                     type="range"
@@ -229,7 +255,7 @@ const CreateJob = () => {
                                     onChange={(e) => setDuration(parseInt(e.target.value))}
                                     className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
                                 />
-                                <div className="flex justify-between text-xs text-slate-400 font-medium mt-1">
+                                <div className="flex justify-between text-xs text-slate-500 font-medium mt-1">
                                     <span>15 min</span>
                                     <span>180 min</span>
                                 </div>
@@ -253,6 +279,7 @@ const CreateJob = () => {
                             <div>
                                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Question Weightage (Total: 100%)</label>
 
+                                {/* MCQ */}
                                 <div className="mb-6">
                                     <div className="flex justify-between items-center mb-2">
                                         <span className="text-sm font-bold text-slate-300">MCQ</span>
@@ -374,67 +401,22 @@ const CreateJob = () => {
                         </div>
                     </div>
 
-                    {/* Generate AI Assessment Button (Optional) */}
-                    <div className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 p-6 rounded-3xl border border-blue-800/50">
-                        <div className="flex items-center gap-3 mb-4">
-                            <Sparkles className="w-5 h-5 text-blue-400" />
-                            <h3 className="text-sm font-black text-white uppercase tracking-tight">AI Question Generator (Optional)</h3>
-                        </div>
-                        <p className="text-xs text-slate-300 mb-4 font-medium">
-                            Let AI analyze your job description and generate customized questions automatically.
-                        </p>
+                    {/* Save Button */}
+                    <div className="flex gap-4">
                         <button
-                            onClick={handleGenerateValues}
-                            disabled={isGenerating || !jobTitle || !jobDescription}
-                            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
+                            onClick={handleSave}
+                            disabled={isSaving}
+                            className="flex-1 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50"
                         >
-                            {isGenerating ? (
+                            {isSaving ? (
                                 <>
                                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    Analyzing Skills...
+                                    Saving Changes...
                                 </>
                             ) : (
                                 <>
-                                    <Sparkles size={16} />
-                                    Generate AI Questions
-                                </>
-                            )}
-                        </button>
-
-                        {error && (
-                            <div className="mt-4 p-4 bg-red-900/20 border border-red-800 rounded-xl flex items-center gap-3">
-                                <AlertOctagon className="w-5 h-5 text-red-400" />
-                                <div>
-                                    <h4 className="text-sm font-black text-red-400 uppercase tracking-tight">AI Generation Failed</h4>
-                                    <p className="text-xs text-red-300 font-medium">{error}</p>
-                                </div>
-                            </div>
-                        )}
-
-                        {generatedSections && (
-                            <div className="mt-4 p-4 bg-slate-800 rounded-xl border border-slate-700">
-                                <div className="flex items-center gap-2 text-emerald-400 mb-2">
-                                    <CheckCircle className="w-4 h-4" />
-                                    <span className="text-xs font-black uppercase tracking-widest">Questions Generated!</span>
-                                </div>
-                                <p className="text-xs text-slate-300">
-                                    {generatedSections.mcqs.length} MCQs, {generatedSections.subjective.length} Subjective, {generatedSections.coding.length} Coding
-                                </p>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Generate/Publish Assessment Button */}
-                    <div className="flex gap-4">
-                        <button
-                            onClick={handlePublish}
-                            disabled={isPublishing}
-                            className="flex-1 py-4 bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 text-white rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-                        >
-                            {isPublishing ? 'Publishing...' : (
-                                <>
-                                    <CheckCircle size={20} />
-                                    Generate AI Assessment
+                                    <Save size={20} />
+                                    Save Changes
                                 </>
                             )}
                         </button>
@@ -445,4 +427,4 @@ const CreateJob = () => {
     );
 };
 
-export default CreateJob;
+export default EditJob;
