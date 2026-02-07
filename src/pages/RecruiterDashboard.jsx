@@ -9,6 +9,7 @@ import {
     Award, Shield, BrainCircuit, Sparkles, TrendingUp
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
+import { calculateHiringConfidence, getConfidenceClasses } from '../utils/hiringConfidence';
 
 const RecruiterDashboard = () => {
     const navigate = useNavigate();
@@ -210,8 +211,8 @@ const RecruiterDashboard = () => {
                                             <th className="px-8 py-6">Identity</th>
                                             <th className="px-8 py-6">Technical Accuracy</th>
                                             <th className="px-8 py-6 text-blue-600 dark:text-blue-400">Skill Credibility</th>
+                                            <th className="px-8 py-6">Hiring Confidence</th>
                                             <th className="px-8 py-6">Hiring Status</th>
-                                            <th className="px-8 py-6"></th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
@@ -234,7 +235,7 @@ const RecruiterDashboard = () => {
                                                     <tr key={candidate.id} className="group hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-all">
                                                         <td className="px-8 py-6">
                                                             <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs border-2 ${index === 0 ? 'bg-blue-600 text-white border-blue-600 shadow-xl shadow-blue-500/20' :
-                                                                    'bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-100 dark:border-slate-700'
+                                                                'bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-100 dark:border-slate-700'
                                                                 }`}>
                                                                 {index + 1}
                                                             </div>
@@ -261,17 +262,27 @@ const RecruiterDashboard = () => {
                                                             </div>
                                                         </td>
                                                         <td className="px-8 py-6">
+                                                            {(() => {
+                                                                const confidence = calculateHiringConfidence(candidate.percentage, candidate.aiEvaluation?.credibilityScore || fakeCredibility);
+                                                                const classes = getConfidenceClasses(confidence.level);
+                                                                return (
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-lg">{confidence.icon}</span>
+                                                                        <div>
+                                                                            <div className="font-black text-slate-900 dark:text-white">{confidence.score}%</div>
+                                                                            <div className={`text-[9px] font-black uppercase tracking-widest ${classes.text}`}>{confidence.label}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })()}
+                                                        </td>
+                                                        <td className="px-8 py-6">
                                                             <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border ${candidate.percentage >= 80 ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 border-blue-100 dark:border-blue-900/50' :
-                                                                    candidate.percentage >= 60 ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-100 dark:border-emerald-900/50' :
-                                                                        'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-100 dark:border-slate-700'
+                                                                candidate.percentage >= 60 ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-100 dark:border-emerald-900/50' :
+                                                                    'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-100 dark:border-slate-700'
                                                                 }`}>
                                                                 {candidate.percentage >= 80 ? 'Exceptional' : candidate.percentage >= 60 ? 'Verified' : 'Review Required'}
                                                             </span>
-                                                        </td>
-                                                        <td className="px-8 py-6 text-right">
-                                                            <button className="p-3 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors opacity-0 group-hover:opacity-100">
-                                                                <MoreHorizontal className="w-5 h-5" />
-                                                            </button>
                                                         </td>
                                                     </tr>
                                                 );
