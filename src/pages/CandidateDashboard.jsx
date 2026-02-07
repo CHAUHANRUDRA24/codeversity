@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import { db } from '../firebase';
-import { Briefcase, Play, Clock, Layout, Loader, LogOut, FileText, CheckCircle } from 'lucide-react';
+import { collection, getDocs, query, orderBy, doc, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../firebase'; // Ensure storage is exported from firebase.js
+import { 
+    Briefcase, Play, Clock, Layout, Loader, LogOut, FileText, 
+    CheckCircle, Search, Upload, Shield, Award, Sparkles, AlertTriangle 
+} from 'lucide-react';
+import Sidebar from '../components/Sidebar';
 
 const CandidateDashboard = () => {
     const navigate = useNavigate();
@@ -11,10 +16,12 @@ const CandidateDashboard = () => {
     
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [uploading, setUploading] = useState(false);
+    const [resumeUrl, setResumeUrl] = useState(user?.resumeUrl || null);
 
     useEffect(() => {
         const fetchJobs = async () => {
-             // Fetch all available jobs
              try {
                  const q = query(collection(db, "jobs"), orderBy("createdAt", "desc"));
                  const querySnapshot = await getDocs(q);
@@ -33,101 +40,246 @@ const CandidateDashboard = () => {
         navigate('/login');
     };
 
+    const handleResumeUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setUploading(true);
+        try {
+            const storageRef = ref(storage, `resumes/${user.uid}/${file.name}`);
+            await uploadBytes(storageRef, file);
+            const downloadURL = await getDownloadURL(storageRef);
+            
+            // Update user profile in Firestore
+            const userRef = doc(db, "users", user.uid);
+            await updateDoc(userRef, {
+                resumeUrl: downloadURL,
+                resumeName: file.name,
+                resumeUpdatedAt: new Date().toISOString()
+            });
+
+            setResumeUrl(downloadURL);
+            alert("Resume uploaded successfully!");
+        } catch (error) {
+            console.error("Error uploading resume:", error);
+            alert("Failed to upload resume. Please try again.");
+        } finally {
+            setUploading(false);
+        }
+    };
+
     return (
-        <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
-            {/* Navbar */}
-            <nav className="sticky top-0 z-30 w-full bg-white border-b border-slate-200">
-                <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white">
-                            <Briefcase className="h-5 w-5" />
+        <div className="flex h-screen w-full overflow-hidden bg-[#f6f7f8] dark:bg-[#0f172a] text-slate-900 dark:text-slate-50 font-sans transition-colors duration-200">
+            {/* Sidebar */}
+            <Sidebar 
+                role="candidate" 
+                user={user} 
+                onLogout={handleLogout} 
+                sidebarOpen={sidebarOpen} 
+                setSidebarOpen={setSidebarOpen} 
+            />
+
+            {/* Main Content */}
+            <main className="flex-1 flex flex-col overflow-hidden relative">
+                {/* Header */}
+                <header className="h-20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 z-10 transition-colors duration-200 shrink-0">
+                    <div>
+                        <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-1">Candidate Portal</p>
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Explorer Dashboard</h1>
+                            <span className="text-slate-300 dark:text-slate-600 text-lg">/</span>
+                            <span className="text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wide text-sm border-b-2 border-blue-600 dark:border-blue-400 pb-0.5">Opportunities</span>
                         </div>
-                        <span className="text-xl font-bold tracking-tight text-slate-900">IntelliHire</span>
                     </div>
-
-                    <div className="hidden md:flex items-center gap-8">
-                        <a href="#" className="text-sm font-medium text-blue-600">Dashboard</a>
-                        <a href="#" className="text-sm font-medium text-slate-500 hover:text-slate-900">My Profile</a>
-                    </div>
-
+                    
                     <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
-                            <div className="text-right hidden sm:block">
-                                <p className="text-sm font-medium text-slate-900">{user?.email}</p>
-                                <p className="text-xs text-slate-500">Candidate</p>
-                            </div>
-                            <div className="h-9 w-9 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold border border-white shadow-sm">
-                                {user?.email?.[0].toUpperCase()}
-                            </div>
-                            <button onClick={handleLogout} title="Logout" className="ml-2 text-slate-400 hover:text-red-600 transition-colors">
-                                <LogOut className="h-5 w-5" />
-                            </button>
+                        <div className="text-right hidden sm:block">
+                            <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">{user?.email?.split('@')[0]}</p>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">Certified Candidate</p>
+                        </div>
+                        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/30">
+                            {user?.email?.[0].toUpperCase()}
                         </div>
                     </div>
-                </div>
-            </nav>
+                </header>
 
-            <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-                <div className="flex flex-col lg:flex-row gap-8">
-                    {/* Main Content */}
-                    <div className="flex-1">
-                        {/* Welcome Header */}
-                        <div className="mb-8">
-                            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                                Welcome back, {user?.email?.split('@')[0]} <span className="text-2xl">👋</span>
-                            </h1>
-                            <p className="mt-1 text-slate-600">
-                                Browse available job assessments below. Good luck!
-                            </p>
-                        </div>
+                <div className="flex-1 overflow-auto p-4 md:p-8 space-y-8 scroll-smooth">
+                    
+                    {/* Hero Section & Stats Grid */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* Hero Banner */}
+                        <div className="lg:col-span-2 bg-[#0a101f] rounded-[2.5rem] p-8 md:p-12 relative overflow-hidden shadow-2xl shadow-blue-900/20 text-white flex flex-col justify-center min-h-[320px]">
+                            {/* Background Elements */}
+                            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-600/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+                            <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-indigo-600/20 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/3 pointer-events-none"></div>
+                            
+                            <div className="relative z-10 max-w-xl">
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] font-bold uppercase tracking-widest mb-6 text-blue-300">
+                                    <Sparkles className="w-3 h-3" /> System Status: Online
+                                </div>
+                                <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-4 leading-tight">
+                                    PROVE YOUR <br/>
+                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">EXPERTISE.</span>
+                                </h2>
+                                <p className="text-slate-400 text-lg mb-8 max-w-md font-medium leading-relaxed">
+                                    Browse active job missions and complete assessments to get verified skill reports.
+                                </p>
 
-                        {/* Available Tests */}
-                        <div>
-                            <div className="flex items-center gap-2 mb-6">
-                                <h2 className="text-xl font-bold text-slate-900">Available Assessments</h2>
-                                <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5 rounded-full">{jobs.length}</span>
+                                {!resumeUrl && (
+                                    <div className="inline-flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl animate-pulse">
+                                        <AlertTriangle className="text-amber-500 w-5 h-5 flex-shrink-0" />
+                                        <p className="text-xs font-bold text-amber-200 uppercase tracking-wide">
+                                            Resume Missing! Upload your resume to enable AI skill matching.
+                                        </p>
+                                    </div>
+                                )}
                             </div>
 
-                            {loading ? (
-                                <div className="text-center py-12">
-                                    <Loader className="w-8 h-8 animate-spin mx-auto text-blue-600 mb-2" />
-                                    Loading assessments...
-                                </div>
-                            ) : jobs.length === 0 ? (
-                                <div className="text-center py-12 bg-white rounded-xl border border-dashed border-slate-300">
-                                    <p className="text-slate-500">No assessments available at this time.</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    {jobs.map(job => (
-                                        <div key={job.id} className="group bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-3 mb-1">
-                                                    <h3 className="text-lg font-bold text-slate-900">{job.title}</h3>
-                                                    <span className={`px-2.5 py-0.5 rounded text-xs font-semibold ${job.experienceLevel === 'Fresher' ? 'bg-green-100 text-green-700' : job.experienceLevel === 'Mid' ? 'bg-yellow-100 text-yellow-700' : 'bg-purple-100 text-purple-700'}`}>
-                                                        {job.experienceLevel || 'General'}
-                                                    </span>
-                                                </div>
-                                                <p className="text-slate-500 text-sm line-clamp-2 mb-3">{job.description}</p>
-                                                
-                                                <div className="flex items-center gap-4 text-xs text-slate-400 font-medium">
-                                                    <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> 15 Mins</span>
-                                                    <span className="flex items-center gap-1"><Layout className="h-3.5 w-3.5" /> {job.questions?.length || 5} Questions</span>
-                                                    <span className="flex items-center gap-1"><FileText className="h-3.5 w-3.5" /> Multiple Choice</span>
-                                                </div>
-                                            </div>
-                                            
-                                            <button 
-                                                onClick={() => navigate(`/test/${job.id}`)}
-                                                className="w-full sm:w-auto bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-sm shadow-blue-200"
-                                            >
-                                                Start Test <Play className="h-4 w-4" />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                            {/* Decorative Star */}
+                            <div className="absolute top-12 right-12 text-white/5 transform rotate-12 pointer-events-none">
+                                <svg width="200" height="200" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                                </svg>
+                            </div>
                         </div>
+
+                        {/* Talent Passport Widget */}
+                        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-8 shadow-sm flex flex-col h-full relative overflow-hidden">
+                            <div className="flex items-center justify-between mb-8">
+                                <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Talent Passport</h3>
+                                <div className="p-2 bg-blue-50 dark:bg-slate-800 rounded-xl text-blue-600 dark:text-blue-400">
+                                    <FileText className="w-4 h-4" />
+                                </div>
+                            </div>
+
+                            <div className="flex-1 flex flex-col items-center justify-center text-center">
+                                <div className="w-24 h-24 rounded-3xl bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center mb-6 group cursor-pointer hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all relative">
+                                    {resumeUrl ? (
+                                        <CheckCircle className="w-8 h-8 text-emerald-500" />
+                                    ) : (
+                                        <Upload className="w-8 h-8 text-slate-300 group-hover:text-blue-500 transition-colors" />
+                                    )}
+                                    <input 
+                                        type="file" 
+                                        accept=".pdf,.doc,.docx"
+                                        onChange={handleResumeUpload}
+                                        disabled={uploading}
+                                        className="absolute inset-0 opacity-0 cursor-pointer"
+                                    />
+                                </div>
+                                
+                                {uploading ? (
+                                    <div className="text-center">
+                                        <Loader className="w-5 h-5 animate-spin mx-auto text-blue-600 mb-2" />
+                                        <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Uploading...</p>
+                                    </div>
+                                ) : resumeUrl ? (
+                                    <div>
+                                        <h4 className="font-black text-slate-900 dark:text-white uppercase tracking-tight text-lg mb-1">Resume Verified</h4>
+                                        <p className="text-xs font-medium text-emerald-600 uppercase tracking-widest">Ready for analysis</p>
+                                        <a href={resumeUrl} target="_blank" rel="noopener noreferrer" className="mt-4 text-[10px] font-bold text-blue-600 hover:underline block uppercase tracking-widest">View Document</a>
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <h4 className="font-black text-slate-900 dark:text-white uppercase tracking-tight text-lg mb-1">Upload Resume</h4>
+                                        <p className="text-xs font-medium text-slate-400 uppercase tracking-widest">PDF / DOCX (Max 5MB)</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800 w-full">
+                                <button className="w-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white px-6 py-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 group">
+                                    {uploading ? 'Processing...' : (
+                                        <>
+                                           {resumeUrl ? 'Update Resume' : 'Select File'} 
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Stats Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+                            <div>
+                                <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Skill Overview</p>
+                            </div>
+                        </div>
+                         <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+                            <div>
+                                <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Avg. Score</p>
+                                <p className="text-3xl font-black text-slate-900 dark:text-white">--</p>
+                            </div>
+                            <div className="h-12 w-12 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center">
+                                <Award className="w-6 h-6" />
+                            </div>
+                        </div>
+                        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+                            <div>
+                                <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Completed</p>
+                                <p className="text-3xl font-black text-slate-900 dark:text-white">0</p>
+                            </div>
+                            <div className="h-12 w-12 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center">
+                                <CheckCircle className="w-6 h-6" />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Assessments Section */}
+                    <div>
+                        <div className="flex items-center justify-between mb-6 px-2">
+                            <h2 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Open Assessments</h2>
+                            <div className="relative hidden md:block">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                <input 
+                                    placeholder="Search Missions..." 
+                                    className="h-10 pl-10 pr-6 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 w-64 transition-all"
+                                />
+                            </div>
+                        </div>
+
+                        {loading ? (
+                             <div className="text-center py-20">
+                                <Loader className="w-8 h-8 animate-spin mx-auto text-blue-600 mb-4" />
+                                <p className="text-xs font-black uppercase tracking-widest text-slate-400">Loading Configuration...</p>
+                            </div>
+                        ) : jobs.length === 0 ? (
+                            <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-dashed border-slate-200 dark:border-slate-800">
+                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">No assessments available currently.</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {jobs.map(job => (
+                                    <div key={job.id} className="group bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-8 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 relative overflow-hidden">
+                                        
+                                        <div className="flex justify-between items-start mb-6">
+                                            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-2xl">
+                                                <Briefcase className="w-6 h-6" />
+                                            </div>
+                                            <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${job.experienceLevel === 'Fresher' ? 'bg-emerald-50 text-emerald-600' : 'bg-purple-50 text-purple-600'}`}>
+                                                ACTIVE
+                                            </span>
+                                        </div>
+
+                                        <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2 line-clamp-1">{job.title}</h3>
+                                        <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 line-clamp-2 h-10 leading-relaxed font-medium">{job.description}</p>
+                                        
+                                        <div className="flex items-center gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-8">
+                                            <span className="flex items-center gap-1.5"><Clock className="h-3 w-3" /> 15 Mins</span>
+                                            <span className="flex items-center gap-1.5"><Layout className="h-3 w-3" /> {job.questions?.length || 5} Items</span>
+                                        </div>
+
+                                        <button 
+                                            onClick={() => navigate(`/test/${job.id}`)}
+                                            className="w-full bg-slate-900 dark:bg-blue-600 text-white py-4 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-black dark:hover:bg-blue-700 transition-all flex items-center justify-center gap-2 group-hover:scale-[1.02] active:scale-95 shadow-lg shadow-slate-200 dark:shadow-blue-900/20"
+                                        >
+                                            Start Test <Play className="h-3 w-3 fill-current" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             </main>
