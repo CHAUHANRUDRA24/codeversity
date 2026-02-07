@@ -76,14 +76,18 @@ const ResultPage = () => {
 
     const isPass = result.percentage >= 60;
 
+    const hasResume = result.resumeUrl || user?.resumeUrl;
+    const baseCredibility = result.percentage;
+    const credibilityBonus = hasResume ? 15 : -10;
+
     // AI Credibility Logic (Simulated per user requirements)
     const credibilityData = result.aiEvaluation || {
-        credibilityScore: Math.min(100, Math.max(0, result.percentage + (Math.random() * 20 - 10))),
+        credibilityScore: Math.min(100, Math.max(0, baseCredibility + credibilityBonus)),
         skillSync: [
-            { skill: 'Core Knowledge', claimed: 'Expert', verified: result.percentage >= 80 ? 'Expert' : result.percentage >= 60 ? 'Intermediate' : 'Entry', score: result.percentage },
-            { skill: 'Execution Strategy', claimed: 'Senior', verified: result.percentage >= 70 ? 'Optimal' : 'Standard', score: Math.min(100, result.percentage + 5) }
+            { skill: 'Core Knowledge', claimed: hasResume ? 'Expert' : 'Unverified', verified: result.percentage >= 80 ? 'Expert' : result.percentage >= 60 ? 'Intermediate' : 'Entry', score: result.percentage },
+            { skill: 'Execution Strategy', claimed: hasResume ? 'Senior' : 'Unverified', verified: result.percentage >= 70 ? 'Optimal' : 'Standard', score: Math.min(100, result.percentage + 5) }
         ],
-        recommendation: isPass ? "Highly Recommended / Credible" : "Skill Alignment Revision Required"
+        recommendation: isPass ? (hasResume ? "Highly Recommended / Verified" : "Recommended / Awaiting Verification") : "Skill Alignment Revision Required"
     };
 
     const credibilityScore = credibilityData.credibilityScore.toFixed(0);
@@ -225,8 +229,8 @@ const ResultPage = () => {
 
                         {/* AI Conclusion */}
                         <div className={`p-10 rounded-[3rem] border shadow-2xl transition-all relative overflow-hidden ${isPass
-                                ? 'bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/30 text-emerald-900 dark:text-emerald-100'
-                                : 'bg-rose-50/50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-900/30 text-rose-900 dark:text-rose-100'
+                            ? 'bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/30 text-emerald-900 dark:text-emerald-100'
+                            : 'bg-rose-50/50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-900/30 text-rose-900 dark:text-rose-100'
                             }`}>
                             <div className="relative z-10">
                                 <div className="flex items-center gap-4 mb-6">

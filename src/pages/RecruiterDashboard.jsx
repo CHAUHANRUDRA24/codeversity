@@ -210,6 +210,7 @@ const RecruiterDashboard = () => {
                                             <th className="px-8 py-6">Identity</th>
                                             <th className="px-8 py-6">Technical Accuracy</th>
                                             <th className="px-8 py-6 text-blue-600 dark:text-blue-400">Skill Credibility</th>
+                                            <th className="px-8 py-6">Resume Sync</th>
                                             <th className="px-8 py-6">Hiring Status</th>
                                             <th className="px-8 py-6"></th>
                                         </tr>
@@ -217,38 +218,42 @@ const RecruiterDashboard = () => {
                                     <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                                         {loadingCandidates ? (
                                             <tr>
-                                                <td colSpan="6" className="px-8 py-20 text-center">
+                                                <td colSpan="7" className="px-8 py-20 text-center">
                                                     <Loader className="w-8 h-8 animate-spin mx-auto text-blue-600 opacity-20" />
                                                 </td>
                                             </tr>
                                         ) : candidates.length === 0 ? (
                                             <tr>
-                                                <td colSpan="6" className="px-8 py-20 text-center opacity-40 italic text-slate-500 font-bold uppercase text-[10px] tracking-widest">
+                                                <td colSpan="7" className="px-8 py-20 text-center opacity-40 italic text-slate-500 font-bold uppercase text-[10px] tracking-widest">
                                                     Waiting for candidates to initialize track...
                                                 </td>
                                             </tr>
                                         ) : (
                                             candidates.map((candidate, index) => {
-                                                const fakeCredibility = Math.min(100, Math.max(0, candidate.percentage + (Math.random() * 20 - 10))).toFixed(0);
+                                                const hasResume = candidate.resumeUrl || candidate.user?.resumeUrl;
+                                                const baseCredibility = candidate.percentage;
+                                                const credibilityBonus = hasResume ? 15 : -10;
+                                                const credibilityScore = Math.min(100, Math.max(0, baseCredibility + credibilityBonus)).toFixed(0);
+
                                                 return (
                                                     <tr key={candidate.id} className="group hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-all">
                                                         <td className="px-8 py-6">
                                                             <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs border-2 ${index === 0 ? 'bg-blue-600 text-white border-blue-600 shadow-xl shadow-blue-500/20' :
-                                                                    'bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-100 dark:border-slate-700'
+                                                                'bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-100 dark:border-slate-700'
                                                                 }`}>
                                                                 {index + 1}
                                                             </div>
                                                         </td>
                                                         <td className="px-8 py-6">
                                                             <div>
-                                                                <div className="font-black text-slate-900 dark:text-white uppercase tracking-tight truncate max-w-[200px]">{candidate.user?.email}</div>
+                                                                <div className="font-black text-slate-900 dark:text-white uppercase tracking-tight truncate max-w-[200px]">{candidate.candidateEmail || candidate.user?.email}</div>
                                                                 <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">Applied {new Date(candidate.submittedAt).toLocaleDateString()}</div>
                                                             </div>
                                                         </td>
                                                         <td className="px-8 py-6">
                                                             <div className="flex items-center gap-4">
                                                                 <span className="font-black text-slate-900 dark:text-white w-10">{candidate.percentage.toFixed(0)}%</span>
-                                                                <div className="h-1.5 w-32 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                                                <div className="h-1.5 w-24 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                                                     <div className={`h-full transition-all duration-1000 ${candidate.percentage >= 60 ? 'bg-emerald-500' : 'bg-rose-500'}`} style={{ width: `${candidate.percentage}%` }}></div>
                                                                 </div>
                                                             </div>
@@ -256,14 +261,38 @@ const RecruiterDashboard = () => {
                                                         <td className="px-8 py-6">
                                                             <div className="flex items-center gap-3 text-blue-600 dark:text-blue-400">
                                                                 <BrainCircuit className="w-4 h-4" />
-                                                                <span className="font-black text-lg tracking-tighter">{candidate.aiEvaluation?.credibilityScore?.toFixed(0) || fakeCredibility}%</span>
-                                                                <span className="text-[9px] font-black uppercase tracking-widest opacity-60">Match</span>
+                                                                <span className="font-black text-lg tracking-tighter">{credibilityScore}%</span>
+                                                                <div className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${hasResume ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600' : 'bg-amber-100 dark:bg-amber-900/30 text-amber-600'}`}>
+                                                                    {hasResume ? 'Audited' : 'Unverified'}
+                                                                </div>
                                                             </div>
                                                         </td>
                                                         <td className="px-8 py-6">
+                                                            {hasResume ? (
+                                                                <a
+                                                                    href={candidate.resumeUrl || candidate.user?.resumeUrl}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="flex items-center gap-2 group/link"
+                                                                >
+                                                                    <div className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg group-hover/link:bg-blue-600 group-hover/link:text-white transition-all">
+                                                                        <FileText className="w-4 h-4" />
+                                                                    </div>
+                                                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover/link:text-blue-600 transition-colors">View Talent Passport</span>
+                                                                </a>
+                                                            ) : (
+                                                                <div className="flex items-center gap-2 opacity-30">
+                                                                    <div className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-lg">
+                                                                        <FileText className="w-4 h-4" />
+                                                                    </div>
+                                                                    <span className="text-[10px] font-black uppercase tracking-widest">Passport Missing</span>
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-8 py-6">
                                                             <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border ${candidate.percentage >= 80 ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 border-blue-100 dark:border-blue-900/50' :
-                                                                    candidate.percentage >= 60 ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-100 dark:border-emerald-900/50' :
-                                                                        'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-100 dark:border-slate-700'
+                                                                candidate.percentage >= 60 ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-100 dark:border-emerald-900/50' :
+                                                                    'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-100 dark:border-slate-700'
                                                                 }`}>
                                                                 {candidate.percentage >= 80 ? 'Exceptional' : candidate.percentage >= 60 ? 'Verified' : 'Review Required'}
                                                             </span>
