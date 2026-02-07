@@ -12,6 +12,7 @@ import CreateJob from './pages/CreateJob';
 import TestPage from './pages/TestPage';
 import ResultPage from './pages/ResultPage';
 import AdminSetup from './pages/AdminSetup';
+import DataAdder from './pages/DataAdder';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/data-adder" element={<DataAdder />} />
 
           {/* Protected Recruiter Routes */}
           <Route path="/recruiter-dashboard" element={

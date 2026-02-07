@@ -101,3 +101,93 @@ export const evaluateAnswer = async (question, userAnswer, type, context = "") =
         return { score: 0, feedback: "Error evaluating answer", credibility: 0 };
     }
 };
+
+export const matchResumeToJobs = async (resumeText, jobs) => {
+    // Simplify jobs list to reduce token usage
+    const jobsSummary = jobs.map(j => ({
+        id: j.id,
+        title: j.title,
+        description: j.description.substring(0, 300) // Truncate for efficiency
+    }));
+
+    const prompt = `
+        You are a smart recruiter. Match the following resume text to the available job openings.
+        
+        Resume Text:
+        "${resumeText.substring(0, 2000)}"
+
+        Available Jobs:
+        ${JSON.stringify(jobsSummary)}
+
+        For each job, provide a relevance score (0-100) and a brief reason.
+        Return a JSON object in this format:
+        {
+            "matches": [
+                { "jobId": "...", "score": 85, "reason": "..." }
+            ]
+        }
+    `;
+
+    try {
+        const jsonStr = await groqFetch([
+            { role: "system", content: "You are a detailed-oriented recruiter. Output valid JSON." },
+            { role: "user", content: prompt }
+        ], 0.2);
+        const result = JSON.parse(jsonStr);
+        return result.matches || [];
+    } catch (error) {
+        console.error("AI Matching Error:", error);
+        return [];
+    }
+};
+
+export const analyzeResume = async (resumeText) => {
+    const prompt = `
+        You are an expert career coach and technical recruiter.
+        Analyze the following resume text and provide a structured summary.
+        
+        Resume Text:
+        "${resumeText.substring(0, 3000)}"
+
+        Extract and infer the following:
+        - Technical Skills (array of strings)
+        - Years of Experience (string, e.g. "5+ years")
+        - Recommended Job Role (string, e.g. "Senior Frontend Engineer")
+        - Top 3 Job Categories (array of strings, e.g. ["Frontend", "Full Stack", "UI/UX"])
+        - Resume Quality Score (0-100 integer)
+
+        Output ONLY valid JSON. No markdown backticks.
+        JSON format:
+        {
+            "technicalSkills": ["React", "Node.js", ...],
+            "experience": "...",
+            "roleRecommendation": "...",
+            "matchingCategories": ["...", ...],
+            "resumeQualityScore": 85
+        }
+    `;
+
+    try {
+        const jsonStr = await groqFetch([
+            { role: "system", content: "You are a helpful assistant that outputs valid JSON." },
+            { role: "user", content: prompt }
+        ], 0.3);
+        
+        try {
+            return JSON.parse(jsonStr);
+        } catch (e) {
+            // Handle if Groq wraps in markdown
+            const cleanJson = jsonStr.replace(/```json/g, '').replace(/```/g, '').trim();
+            return JSON.parse(cleanJson);
+        }
+    } catch (error) {
+        console.error("AI Analysis Error:", error);
+        return {
+            technicalSkills: [],
+            experience: "Unknown",
+            roleRecommendation: "Generalist",
+            matchingCategories: [],
+            resumeQualityScore: 0
+        };
+    }
+};

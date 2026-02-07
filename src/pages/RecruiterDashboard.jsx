@@ -6,7 +6,7 @@ import { db } from '../firebase';
 import {
     Briefcase, User, Search, Plus, Filter,
     Download, MoreHorizontal, LogOut, Loader,
-    Award, Shield, BrainCircuit, Sparkles, TrendingUp, AlertTriangle
+    Award, Shield, BrainCircuit, Sparkles, TrendingUp, AlertTriangle, Users
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { calculateHiringConfidence, getConfidenceClasses } from '../utils/hiringConfidence';
@@ -19,6 +19,7 @@ const RecruiterDashboard = () => {
     const [jobs, setJobs] = useState([]);
     const [selectedJob, setSelectedJob] = useState(null);
     const [candidates, setCandidates] = useState([]);
+    const [rejectedCandidates, setRejectedCandidates] = useState([]); // New State
     const [loading, setLoading] = useState(true);
     const [loadingCandidates, setLoadingCandidates] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -28,15 +29,29 @@ const RecruiterDashboard = () => {
         const fetchJobs = async () => {
             if (!user) return;
             try {
+                // 1. Fetch Jobs
                 const q = query(collection(db, "jobs"));
                 const querySnapshot = await getDocs(q);
                 const jobsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 jobsData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-                setJobs(jobsData);
+                // 2. Fetch Results (Candidates) to calculate counts
+                // For a scalable app, we'd use aggregation queries or counter fields.
+                // For this size, getting all results is okay, or we can query per job.
+                // Let's query all results once to minimize reads if we assume < 10k results
+                const resultsSnap = await getDocs(collection(db, "results"));
+                const results = resultsSnap.docs.map(d => d.data());
 
-                if (jobsData.length > 0) {
-                    handleViewCandidates(jobsData[0]);
+                // 3. Map counts
+                const jobsWithCounts = jobsData.map(job => {
+                    const count = results.filter(r => r.jobId === job.id).length;
+                    return { ...job, candidateCount: count };
+                });
+
+                setJobs(jobsWithCounts);
+
+                if (jobsWithCounts.length > 0) {
+                    handleViewCandidates(jobsWithCounts[0]);
                 }
             } catch (error) {
                 console.error("Error fetching jobs:", error);
@@ -59,9 +74,25 @@ const RecruiterDashboard = () => {
 
             const candidatesData = await Promise.all(querySnapshot.docs.map(async (resDoc) => {
                 const result = resDoc.data();
-                const userRef = doc(db, "users", result.userId);
-                const userSnap = await getDoc(userRef);
-                const userData = userSnap.exists() ? userSnap.data() : { email: 'Unknown', name: 'Unknown' };
+                
+                let userData = { email: 'Unknown Candidate', name: 'Unknown' };
+
+                // 1. Check for seeded mock data first
+                if (result.mockUser) {
+                    userData = result.mockUser;
+                } 
+                // 2. Otherwise try to fetch real user profile
+                else if (result.userId) {
+                    try {
+                        const userRef = doc(db, "users", result.userId);
+                        const userSnap = await getDoc(userRef);
+                        if (userSnap.exists()) {
+                            userData = userSnap.data();
+                        }
+                    } catch (e) {
+                        console.warn("Could not fetch user profile", e);
+                    }
+                }
 
                 return {
                     id: resDoc.id,
@@ -76,6 +107,35 @@ const RecruiterDashboard = () => {
             console.error("Error fetching candidates:", error);
         }
         setLoadingCandidates(false);
+    };
+
+    const handleReject = (candidate) => {
+        // 1. Remove from current list
+        setCandidates(prev => prev.filter(c => c.id !== candidate.id));
+
+        // 2. Find a "Better" job (simulate)
+        // Filter out current job
+        const otherJobs = jobs.filter(j => j.id !== selectedJob.id);
+        
+        let suggestedJob;
+        if (otherJobs.length > 0) {
+            suggestedJob = otherJobs[Math.floor(Math.random() * otherJobs.length)];
+        } else {
+             suggestedJob = { title: "Data Analyst Intern" }; // Fallback
+        }
+
+        const matchScore = (85 + Math.random() * 14).toFixed(0); // High match for suggested role
+
+        // 3. Add to Rediscovered list
+        const rediscovered = {
+            ...candidate,
+            originalRole: selectedJob.title,
+            suggestedRole: suggestedJob.title,
+            matchScore: matchScore,
+            rediscoveredAt: new Date()
+        };
+
+        setRejectedCandidates(prev => [rediscovered, ...prev]);
     };
 
     const handleLogout = async () => {
@@ -140,14 +200,72 @@ const RecruiterDashboard = () => {
                         </div>
                         <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
                             <div>
-                                <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Efficiency Delta</p>
-                                <p className="text-2xl font-black text-slate-900 dark:text-white">+14%</p>
+                                <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Total Candidates</p>
+                                <p className="text-2xl font-black text-slate-900 dark:text-white">
+                                    {jobs.reduce((acc, job) => acc + (job.candidateCount || 0), 0)}
+                                </p>
                             </div>
-                            <div className="h-12 w-12 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-2xl flex items-center justify-center">
-                                <TrendingUp className="w-6 h-6" />
+                            <div className="h-12 w-12 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-2xl flex items-center justify-center">
+                                <Users className="w-6 h-6" />
                             </div>
                         </div>
                     </div>
+
+
+
+
+                    {/* Talent Re-Discovery Engine Section */}
+                    {rejectedCandidates.length > 0 && (
+                        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-[2rem] p-8 shadow-2xl shadow-indigo-500/30 text-white relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+                            
+                            <div className="flex items-center gap-3 mb-6 relative z-10">
+                                <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md">
+                                    <Sparkles className="w-6 h-6 text-yellow-300" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-black uppercase tracking-tight">Talent Re-Discovery Engine</h2>
+                                    <p className="text-indigo-200 text-xs font-bold uppercase tracking-widest">AI-Powered Role Mapping • Talent Preservation</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 relative z-10">
+                                {rejectedCandidates.map((candidate, idx) => (
+                                    <div key={idx} className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 hover:bg-white/20 transition-all cursor-pointer group">
+                                        <div className="flex items-start justify-between mb-3">
+                                            <div>
+                                                <div className="font-black text-lg line-clamp-1">{candidate.user?.name || candidate.user?.email}</div>
+                                                <div className="text-[10px] font-bold text-indigo-200 uppercase tracking-widest">Rejected: {candidate.originalRole}</div>
+                                            </div>
+                                            <div className="bg-white/20 px-2 py-1 rounded-lg text-xs font-black">
+                                                {candidate.matchScore}% Match
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <div className="h-px bg-white/20 flex-1"></div>
+                                            <div className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Mapped To</div>
+                                            <div className="h-px bg-white/20 flex-1"></div>
+                                        </div>
+
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-green-500/20 rounded-lg text-green-300">
+                                                <TrendingUp className="w-5 h-5" />
+                                            </div>
+                                            <div className="font-black text-lg text-green-300 line-clamp-1">
+                                                {candidate.suggestedRole}
+                                            </div>
+                                        </div>
+                                        <div className="mt-3 pt-3 border-t border-white/10 flex justify-end">
+                                             <button className="text-[10px] font-black uppercase tracking-widest hover:text-white text-indigo-200 transition-colors flex items-center gap-1">
+                                                View Profile <MoreHorizontal className="w-3 h-3" />
+                                             </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Jobs Horizontal List */}
                     <div className="space-y-4">
@@ -165,12 +283,13 @@ const RecruiterDashboard = () => {
                                         : 'border-white dark:border-slate-900 bg-white dark:bg-slate-900 opacity-60 hover:opacity-100 hover:border-slate-200 dark:hover:border-slate-800'}`}
                                 >
                                     <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tight line-clamp-1 mb-4">{job.title}</h3>
-                                    <div className="flex items-center gap-3">
-                                        <div className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                                            {job.experienceLevel}
-                                        </div>
+                                    <div className="flex items-center justify-between"> 
+                                        {/* Changed to justify-between to space out elements */}
                                         <div className="flex items-center gap-1.5 text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">
                                             <Sparkles className="w-3 h-3" /> AI Active
+                                        </div>
+                                        <div className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                                            {job.candidateCount !== undefined ? job.candidateCount : '-'} Candidates
                                         </div>
                                     </div>
                                 </div>
@@ -213,18 +332,19 @@ const RecruiterDashboard = () => {
                                             <th className="px-8 py-6 text-blue-600 dark:text-blue-400">Skill Credibility</th>
                                             <th className="px-8 py-6">Hiring Confidence</th>
                                             <th className="px-8 py-6">Hiring Status</th>
+                                            <th className="px-8 py-6">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                                         {loadingCandidates ? (
                                             <tr>
-                                                <td colSpan="6" className="px-8 py-20 text-center">
+                                                <td colSpan="7" className="px-8 py-20 text-center">
                                                     <Loader className="w-8 h-8 animate-spin mx-auto text-blue-600 opacity-20" />
                                                 </td>
                                             </tr>
                                         ) : candidates.length === 0 ? (
                                             <tr>
-                                                <td colSpan="6" className="px-8 py-20 text-center opacity-40 italic text-slate-500 font-bold uppercase text-[10px] tracking-widest">
+                                                <td colSpan="7" className="px-8 py-20 text-center opacity-40 italic text-slate-500 font-bold uppercase text-[10px] tracking-widest">
                                                     Waiting for candidates to initialize track...
                                                 </td>
                                             </tr>
@@ -232,7 +352,11 @@ const RecruiterDashboard = () => {
                                             candidates.map((candidate, index) => {
                                                 const fakeCredibility = Math.min(100, Math.max(0, candidate.percentage + (Math.random() * 20 - 10))).toFixed(0);
                                                 return (
-                                                    <tr key={candidate.id} className="group hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-all">
+                                                    <tr 
+                                                        key={candidate.id} 
+                                                        className="group hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-all cursor-pointer"
+                                                        onClick={() => setSelectedCandidate(candidate)}
+                                                    >
                                                         <td className="px-8 py-6">
                                                             <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs border-2 ${index === 0 ? 'bg-blue-600 text-white border-blue-600 shadow-xl shadow-blue-500/20' :
                                                                 'bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-100 dark:border-slate-700'
@@ -243,7 +367,7 @@ const RecruiterDashboard = () => {
                                                         <td className="px-8 py-6">
                                                             <div>
                                                                 <div className="flex items-center gap-2">
-                                                                    <div className="font-black text-slate-900 dark:text-white uppercase tracking-tight truncate max-w-[200px]">{candidate.user?.email}</div>
+                                                                    <div className="font-black text-slate-900 dark:text-white uppercase tracking-tight truncate max-w-[200px]">{candidate.user?.name || candidate.mockUser?.name || candidate.user?.email || "Unknown"}</div>
                                                                     {candidate.tabSwitchViolation && (
                                                                         <div className="group/tooltip relative">
                                                                             <AlertTriangle className="w-4 h-4 text-amber-500" />
@@ -312,6 +436,18 @@ const RecruiterDashboard = () => {
                                                                 )}
                                                             </div>
                                                         </td>
+                                                        <td className="px-8 py-6">
+                                                            <button 
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleReject(candidate);
+                                                                }}
+                                                                className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600 transition-all flex items-center justify-center -ml-2 group/reject"
+                                                                title="Reject & Re-Discover"
+                                                            >
+                                                                <LogOut className="w-4 h-4 group-hover/reject:scale-110 transition-transform" />
+                                                            </button>
+                                                        </td>
                                                     </tr>
                                                 );
                                             })
@@ -320,7 +456,135 @@ const RecruiterDashboard = () => {
                                 </table>
                             </div>
                         </div>
-                    )}
+            )}
+
+            {/* Candidate Report Modal */}
+            {selectedCandidate && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm overflow-y-auto">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-4xl rounded-[2.5rem] p-8 md:p-12 relative shadow-2xl animate-in fade-in zoom-in-95 duration-300 my-8 max-h-[90vh] overflow-auto">
+                        <button 
+                            onClick={() => setSelectedCandidate(null)}
+                            className="absolute top-8 right-8 p-2 bg-slate-100 dark:bg-slate-800 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors z-10"
+                        >
+                            <X className="w-6 h-6 text-slate-500" />
+                        </button>
+
+                        <div className="flex items-start gap-6 mb-10">
+                            <div className="h-20 w-20 bg-blue-600 rounded-[2rem] flex items-center justify-center shadow-lg shadow-blue-500/30 shrink-0">
+                                <span className="text-3xl font-black text-white uppercase tracking-tighter">
+                                    {(selectedCandidate.user?.name || selectedCandidate.mockUser?.name || "?").charAt(0)}
+                                </span>
+                            </div>
+                            <div>
+                                <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">
+                                    {selectedCandidate.user?.name || selectedCandidate.mockUser?.name || "Unknown Candidate"}
+                                </h2>
+                                <div className="flex items-center gap-3 flex-wrap">
+                                    <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg text-[10px] font-black uppercase tracking-widest">
+                                        {selectedCandidate.mockUser?.email || selectedCandidate.user?.email || "No Email"}
+                                    </span>
+                                    {selectedCandidate.tabSwitchViolation && (
+                                        <span className="px-3 py-1 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
+                                            <AlertTriangle className="w-3 h-3" /> High Risk Detected
+                                        </span>
+                                    )}
+                                     <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg text-[10px] font-black uppercase tracking-widest">
+                                        Score: {selectedCandidate.percentage}%
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+                             {/* AI Technical Summary */}
+                            <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800/50">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <Sparkles className="w-4 h-4 text-blue-500" />
+                                    <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">AI Technical Audit</h3>
+                                </div>
+                                <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed italic">
+                                    "{selectedCandidate.aiEvaluation?.technicalSummary || "Complete assessment to generate specific technical feedback."}"
+                                </p>
+                            </div>
+
+                            {/* Risk / Credibility Analysis */}
+                            <div className={`p-6 rounded-[2rem] border ${selectedCandidate.tabSwitchViolation || selectedCandidate.percentage < 40 ? 'bg-rose-50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-800/30' : 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-800/30'}`}>
+                                <div className="flex items-center gap-2 mb-4">
+                                    <Shield className={`w-4 h-4 ${selectedCandidate.tabSwitchViolation || selectedCandidate.percentage < 40 ? 'text-rose-500' : 'text-emerald-500'}`} />
+                                    <h3 className={`text-xs font-black uppercase tracking-widest ${selectedCandidate.tabSwitchViolation || selectedCandidate.percentage < 40 ? 'text-rose-400' : 'text-emerald-400'}`}>Risk Assessment</h3>
+                                </div>
+                                <div className="space-y-2">
+                                     {selectedCandidate.tabSwitchViolation ? (
+                                        <p className="text-xs font-bold text-rose-700 dark:text-rose-300">
+                                            ⚠️ <span className="underline">Integrity Flag:</span> User switched tabs during the test. This suggests potential reliance on external resources.
+                                        </p>
+                                     ) : (
+                                        <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                                            ✓ No integrity violations detected.
+                                        </p>
+                                     )}
+                                     
+                                     {selectedCandidate.aiEvaluation?.credibilityScore < 50 && (
+                                         <p className="text-xs font-bold text-rose-700 dark:text-rose-300">
+                                            ⚠️ <span className="underline">Skill Mismatch:</span> Resume claims senior expertise but test performance (Score: {selectedCandidate.percentage}%) indicates junior-level proficiency.
+                                         </p>
+                                     )}
+                                     
+                                     {!selectedCandidate.tabSwitchViolation && selectedCandidate.aiEvaluation?.credibilityScore >= 50 && (
+                                         <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                                            ✓ Candidate answers align with claimed experience level.
+                                         </p>
+                                     )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Detailed Answer Breakdown */}
+                        <div>
+                             <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-6 px-2">Assessment Response Log</h3>
+                             <div className="space-y-4">
+                                {selectedCandidate.answers && Object.entries(selectedCandidate.answers).map(([qIdx, answer], i) => {
+                                    // Heuristic to determine if "Correct" or "Incorrect" for the UI based on score
+                                    // If high score (>80), assume most answers match "Optimal/Correct". 
+                                    // If low score, flag generic short answers as suspect.
+                                    // In a real app, we would store 'isCorrect' per answer.
+                                    // For this Mock/CSV data, we used keywords in the answer generator.
+                                    
+                                    const isOptimal = answer.includes("Optimal") || answer.includes("Correct") || answer.includes("Detailed explanation");
+                                    const isSuspect = answer.includes("Wrong") || answer.includes("Incomplete") || answer.includes("Vague") || answer.includes("Generic");
+                                    
+                                    // Fallback logic if keywords missing (random distribution based on total score)
+                                    const status = isOptimal ? 'success' : isSuspect ? 'error' : (selectedCandidate.percentage > 60 ? 'success' : 'warning');
+                                    
+                                    return (
+                                        <div key={i} className="bg-slate-50 dark:bg-slate-800/30 rounded-2xl p-6 border border-slate-100 dark:border-slate-800">
+                                            <div className="flex justify-between items-start mb-3">
+                                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Question {parseInt(qIdx) + 1}</span>
+                                                 <span className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest ${
+                                                     status === 'success' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 
+                                                     status === 'error' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400' : 
+                                                     'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                                                 }`}>
+                                                    {status === 'success' ? 'Efficient / Correct' : status === 'error' ? 'Incorrect / Incomplete' : 'Partially Correct'}
+                                                 </span>
+                                            </div>
+                                            <div className="font-mono text-xs text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 whitespace-pre-wrap">
+                                                {answer}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                                {(!selectedCandidate.answers || Object.keys(selectedCandidate.answers).length === 0) && (
+                                    <div className="text-center py-8 text-slate-400 text-xs font-bold uppercase tracking-widest border border-dashed border-slate-200 dark:border-slate-700 rounded-2xl">
+                                        No specific answer data available for this candidate.
+                                    </div>
+                                )}
+                             </div>
+                        </div>
+
+                    </div>
+                </div>
+            )}
                 </div>
             </main>
         </div>

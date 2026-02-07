@@ -109,6 +109,9 @@ const TestPage = () => {
         setSubmitting(true);
 
         try {
+            // Calculate grading results
+            const gradingResults = await gradeAssessment(job, answers);
+
             // Sanitize grading results to remove any undefined values which Firestore doesn't support
             const safeGradingResults = JSON.parse(JSON.stringify(gradingResults));
 

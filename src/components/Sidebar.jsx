@@ -37,7 +37,7 @@ const Sidebar = ({ role = 'recruiter', user, onLogout, sidebarOpen, setSidebarOp
                 </div>
                 <nav className="flex flex-col gap-1">
                     {links.map((link) => {
-                        const isActive = currentPath === link.path || (link.path !== '/recruiter-dashboard' && currentPath.startsWith(link.path));
+                        const isActive = currentPath === link.path || (!link.path.includes('?') && !currentPath.includes('?') && currentPath.startsWith(link.path));
                         return (
                             <button
                                 key={link.path}

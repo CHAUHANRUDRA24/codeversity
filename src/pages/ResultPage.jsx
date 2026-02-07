@@ -199,7 +199,7 @@ For questions or disputes, please contact the recruitment team.
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div className="flex items-center gap-4">
-                        <div className="bg-slate-900 dark:bg-blue-600 p-4 rounded-2xl shadow-xl transform rotate-3">
+                        <div className="bg-slate-900 dark:bg-blue-600 p-4 rounded-2xl shadow-xl transform">
                             <Sparkles className="text-white w-8 h-8" />
                         </div>
                         <div>
