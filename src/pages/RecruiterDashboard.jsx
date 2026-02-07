@@ -332,7 +332,7 @@ const RecruiterDashboard = () => {
                 {/* Candidate Modal */}
                 {selectedCandidate && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-opacity animate-in fade-in duration-200">
-                        <div className="bg-[#0B0F17] w-full max-w-4xl rounded-[2rem] shadow-2xl overflow-hidden border border-slate-800 animate-in zoom-in-95 duration-200 text-left">
+                        <div className="bg-[#0B0F17] w-full max-w-4xl max-h-[90vh] rounded-[2rem] shadow-2xl overflow-hidden border border-slate-800 animate-in zoom-in-95 duration-200 text-left flex flex-col">
                             {/* Modal Header */}
                             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-8 flex items-center justify-between">
                                 <div className="flex items-center gap-6">
@@ -352,7 +352,7 @@ const RecruiterDashboard = () => {
                                 </button>
                             </div>
 
-                            <div className="p-8 space-y-6">
+                            <div className="p-8 space-y-8 overflow-y-auto flex-1 custom-scrollbar">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {/* Assessment Summary Card */}
                                     <div className="bg-[#151b2b] p-6 rounded-3xl border border-slate-800/50">
@@ -459,13 +459,12 @@ const RecruiterDashboard = () => {
                                         )}
 
                                         <div>
-                                            <h5 className={`font-black text-sm uppercase tracking-wide mb-1 ${selectedCandidate.percentage >= 60 && !selectedCandidate.tabSwitchViolation ? 'text-emerald-500' : 'text-amber-500'
-                                                }`}>
+                                            <h5 className={`font-black text-[10px] uppercase tracking-[0.2em] mb-1 ${selectedCandidate.percentage >= 60 && !selectedCandidate.tabSwitchViolation ? 'text-emerald-500' : 'text-amber-500'}`}>
                                                 {selectedCandidate.percentage >= 80 ? 'STRONGLY RECOMMENDED' :
                                                     selectedCandidate.percentage >= 60 ? 'PROCEED TO INTERVIEW' :
                                                         'REVIEW REQUIRED'}
                                             </h5>
-                                            <p className="text-slate-400 text-xs font-medium">
+                                            <p className="text-slate-400 text-xs font-bold leading-relaxed">
                                                 {selectedCandidate.percentage >= 60 && !selectedCandidate.tabSwitchViolation
                                                     ? "Candidate has demonstrated sufficient technical proficiency. Recommended to proceed to the next stage."
                                                     : "Additional manual evaluation recommended before proceeding due to low score or potential policy violations."}
@@ -572,28 +571,28 @@ const RecruiterDashboard = () => {
                                                         : 'text-red-500';
 
                                                 return (
-                                                    <div key={idx} className="bg-white dark:bg-[#151b2b] p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-6 items-start">
+                                                    <div key={idx} className="bg-[#151b2b]/40 backdrop-blur-sm p-6 rounded-3xl border border-slate-800/40 hover:border-slate-700/60 hover:bg-[#151b2b]/60 transition-all duration-300 flex flex-col md:flex-row gap-6 items-start group">
                                                         <div className="flex-shrink-0">
-                                                            <div className="h-10 w-10 bg-amber-50 dark:bg-amber-900/20 rounded-xl flex items-center justify-center font-black text-amber-600 dark:text-amber-500 text-sm border border-amber-100 dark:border-amber-800">
+                                                            <div className="h-10 w-10 bg-amber-500/10 dark:bg-amber-900/20 rounded-xl flex items-center justify-center font-black text-amber-500 text-sm border border-amber-500/20 group-hover:scale-110 transition-transform">
                                                                 {idx + 1}
                                                             </div>
                                                         </div>
-                                                        <div className="flex-1 space-y-3 w-full text-left">
-                                                            <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm md:text-base leading-relaxed">
+                                                        <div className="flex-1 space-y-4 w-full text-left">
+                                                            <h3 className="font-bold text-slate-300 text-sm md:text-base leading-relaxed group-hover:text-white transition-colors">
                                                                 {q.question}
                                                             </h3>
 
-                                                            <div className="flex flex-col sm:flex-row gap-4 sm:gap-12 text-[10px] uppercase font-black tracking-widest w-full">
+                                                            <div className="flex flex-col sm:flex-row gap-4 sm:gap-12 text-[9px] uppercase font-black tracking-[0.2em] w-full border-t border-slate-800/50 pt-4">
                                                                 <div className="flex items-center gap-2 min-w-0">
-                                                                    <span className="text-slate-400 flex-shrink-0">ANS:</span>
-                                                                    <span className={`truncate ${answerColorClass}`}>
+                                                                    <span className="text-slate-500 flex-shrink-0">ANS:</span>
+                                                                    <span className={`truncate ${answerColorClass} bg-slate-800/50 px-2 py-1 rounded`}>
                                                                         {displayedAnswer}
                                                                     </span>
                                                                 </div>
 
                                                                 <div className="flex items-center gap-2 min-w-0">
-                                                                    <span className="text-slate-400 flex-shrink-0">IDEAL:</span>
-                                                                    <span className="text-slate-600 dark:text-slate-400 truncate">
+                                                                    <span className="text-slate-500 flex-shrink-0">IDEAL:</span>
+                                                                    <span className="text-slate-400 truncate opacity-60">
                                                                         {q.correctAnswer || q.idealAnswer || 'N/A'}
                                                                     </span>
                                                                 </div>
