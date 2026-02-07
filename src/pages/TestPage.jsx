@@ -109,9 +109,9 @@ const TestPage = () => {
         setSubmitting(true);
 
         try {
-            // Use the grading service for comprehensive AI evaluation
-            const gradingResults = await gradeAssessment(job, answers);
-            
+            // Sanitize grading results to remove any undefined values which Firestore doesn't support
+            const safeGradingResults = JSON.parse(JSON.stringify(gradingResults));
+
             const score = gradingResults.totalScore;
             const total = gradingResults.totalQuestions;
             const percentage = (score / total) * 100;
@@ -127,7 +127,7 @@ const TestPage = () => {
                 answers: answers, // Save full answers for review
                 tabSwitchViolation: actualViolation || tabSwitchViolation, // Flag if cheating detected
                 // Save detailed AI analysis
-                aiEvaluation: gradingResults
+                aiEvaluation: safeGradingResults
             });
 
             navigate(`/result/${jobId}`, {
