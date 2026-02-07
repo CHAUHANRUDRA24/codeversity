@@ -8,7 +8,7 @@ const TestPage = () => {
     const { jobId } = useParams();
     const navigate = useNavigate();
     const { user } = useAuth();
-    
+
     const [job, setJob] = useState(null);
     const [answers, setAnswers] = useState({});
     const [loading, setLoading] = useState(true);
@@ -30,10 +30,10 @@ const TestPage = () => {
         fetchJob();
     }, [jobId]);
 
-    const handleAnswerChange = (questionId, selectedOption) => {
+    const handleAnswerChange = (index, selectedOption) => {
         setAnswers(prev => ({
             ...prev,
-            [questionId]: selectedOption
+            [index]: selectedOption
         }));
     };
 
@@ -44,14 +44,14 @@ const TestPage = () => {
         let score = 0;
         const total = job.questions.length;
 
-        job.questions.forEach(q => {
-            if (answers[q.id] === q.correctAnswer) {
+        job.questions.forEach((q, index) => {
+            if (answers[index] === q.correctAnswer) {
                 score++;
             }
         });
 
         const percentage = (score / total) * 100;
-        
+
         try {
             // Save result to Firestore
             await addDoc(collection(db, "results"), {
@@ -85,7 +85,7 @@ const TestPage = () => {
                     </div>
                     <div className="p-6 space-y-8">
                         {job.questions.map((q, index) => (
-                            <div key={q.id} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                                 <p className="font-medium text-gray-900 mb-4">
                                     <span className="text-blue-600 mr-2">Q{index + 1}.</span>
                                     {q.question}
@@ -95,10 +95,10 @@ const TestPage = () => {
                                         <label key={option} className="flex items-center space-x-3 cursor-pointer group">
                                             <input
                                                 type="radio"
-                                                name={`question-${q.id}`}
+                                                name={`question-${index}`}
                                                 value={option}
-                                                checked={answers[q.id] === option}
-                                                onChange={() => handleAnswerChange(q.id, option)}
+                                                checked={answers[index] === option}
+                                                onChange={() => handleAnswerChange(index, option)}
                                                 className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                                             />
                                             <span className="text-gray-700 group-hover:text-gray-900">{option}</span>

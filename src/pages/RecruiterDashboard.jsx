@@ -24,8 +24,7 @@ const RecruiterDashboard = () => {
             if (!user) return;
             try {
                 const q = query(
-                    collection(db, "jobs"),
-                    where("createdBy", "==", user.uid)
+                    collection(db, "jobs")
                 );
                 const querySnapshot = await getDocs(q);
                 const jobsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
