@@ -7,7 +7,7 @@ import {
     Briefcase, User, Search, Plus, Filter,
     Download, MoreHorizontal, LogOut, Loader,
     Award, Shield, BrainCircuit, Sparkles, TrendingUp, AlertTriangle,
-    checkCircle as CheckCircle, XCircle, Calendar, Eye, X
+    CheckCircle, XCircle, Calendar, Eye, X
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { calculateHiringConfidence, getConfidenceClasses } from '../utils/hiringConfidence';
