@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { collection, query, where, getDocs, orderBy, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Briefcase, User, Search, Plus, Filter, Download, MoreHorizontal, LogOut, Loader, Award } from 'lucide-react';
+import Sidebar from '../components/Sidebar';
 
 const RecruiterDashboard = () => {
     const navigate = useNavigate();
@@ -93,45 +94,14 @@ const RecruiterDashboard = () => {
     return (
         <div className="flex h-screen w-full overflow-hidden bg-[#f6f7f8] dark:bg-[#101822] text-slate-900 dark:text-slate-50 font-sans transition-colors duration-200">
             {/* Sidebar */}
-            <aside className={`w-64 flex-shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between transition-colors duration-200 ${sidebarOpen ? 'flex' : 'hidden'} md:flex`}>
-                <div className="flex flex-col gap-4 p-4">
-                    <div className="flex flex-col px-2 py-2">
-                        <div className="flex items-center justify-between">
-                            <h1 className="text-slate-900 dark:text-white text-xl font-bold tracking-tight">IntelliHire</h1>
-                            {/* Close button for mobile */}
-                            <button onClick={() => setSidebarOpen(false)} className="md:hidden text-slate-500 dark:text-slate-400">
-                                <span className="material-symbols-outlined">close</span>
-                            </button>
-                        </div>
-                        <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">Recruiter Admin</p>
-                    </div>
-                    <nav className="flex flex-col gap-1">
-                        <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-600/10 text-blue-600 dark:text-blue-600 dark:bg-blue-600/20 w-full text-left">
-                            <span className="material-symbols-outlined text-[24px] fill-1">dashboard</span>
-                            <span className="text-sm font-medium">Dashboard</span>
-                        </button>
-                        <button onClick={() => navigate('/create-job')} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group w-full text-left">
-                            <span className="material-symbols-outlined text-[24px] group-hover:text-blue-600 transition-colors">work</span>
-                            <span className="text-sm font-medium">Create Job</span>
-                        </button>
-                        <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-500 group w-full text-left mt-auto">
-                            <span className="material-symbols-outlined text-[24px] group-hover:text-red-600 transition-colors">logout</span>
-                            <span className="text-sm font-medium">Logout</span>
-                        </button>
-                    </nav>
-                </div>
-                <div className="p-4 border-t border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md ring-2 ring-white dark:ring-slate-800">
-                            {user?.email?.[0]?.toUpperCase() || 'U'}
-                        </div>
-                        <div className="flex flex-col overflow-hidden">
-                            <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{user?.email || 'Unknown User'}</p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">Recruiter</p>
-                        </div>
-                    </div>
-                </div>
-            </aside>
+            {/* Sidebar */}
+            <Sidebar
+                role="recruiter"
+                user={user}
+                onLogout={handleLogout}
+                sidebarOpen={sidebarOpen}
+                setSidebarOpen={setSidebarOpen}
+            />
 
             {/* Main Content */}
             <main className="flex-1 flex flex-col overflow-hidden relative">
