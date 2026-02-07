@@ -78,7 +78,8 @@ const ResultPage = () => {
 
     // AI Credibility Logic
     // We merge the actual AI evaluation with our visualization structure
-    const aiData = result.aiEvaluation || {};
+    const aiEvaluation = result.aiEvaluation || {};
+    const aiData = aiEvaluation;
 
     // Construct or fallback for credibility score
     const finalCredibilityScore = aiData.credibilityScore !== undefined
@@ -104,11 +105,11 @@ const ResultPage = () => {
     const credibilityData = {
         credibilityScore: finalCredibilityScore,
         skillSync: skillSyncData,
-        recommendation: aiData.recommendation || (isPass ? "Highly Recommended / Credible" : "Skill Alignment Revision Required")
+        recommendation: aiEvaluation.recommendation || (isPass ? "Highly Recommended / Credible" : "Skill Alignment Revision Required")
     };
 
-    const credibilityScore = credibilityData.credibilityScore.toFixed(0);
-    const mismatchScore = (100 - credibilityScore).toFixed(0);
+    const credibilityScore = (credibilityData.credibilityScore || 0).toFixed(0);
+    const mismatchScore = (100 - (credibilityData.credibilityScore || 0)).toFixed(0);
 
     const isRecruiterView = location.state?.isRecruiterView;
 
@@ -147,7 +148,7 @@ VERIFICATION ACCURACY BREAKDOWN
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Correct Answers:      ${result.score}
 Total Questions:      ${result.total}
-Accuracy Rate:        ${result.percentage.toFixed(0)}%
+Accuracy Rate:        ${(result?.percentage || 0).toFixed(0)}%
 Performance Level:    ${result.percentage >= 80 ? 'Exceptional' : result.percentage >= 60 ? 'Verified' : 'Review Required'}
 
 AI CREDIBILITY ANALYSIS
@@ -162,7 +163,7 @@ RESUME VS. PERFORMANCE MATRIX
 ${credibilityData.skillSync.map((item, idx) => `
 ${idx + 1}. ${item.skill}
    Resume Claims:        ${item.claimed}
-   Test Performance:     ${item.score.toFixed(0)}%
+   Test Performance:     ${(item?.score || 0).toFixed(0)}%
    Verified Level:       ${item.verified}
    Sync Status:          ${item.score >= 60 ? 'ALIGNED ✓' : 'MISMATCH ⚠'}
 `).join('')}
@@ -278,7 +279,7 @@ For questions or disputes, please contact the recruitment team.
                                     />
                                 </svg>
                                 <div className="absolute flex flex-col items-center">
-                                    <span className="text-5xl font-black dark:text-white tracking-tighter">{result.percentage.toFixed(0)}%</span>
+                                    <span className="text-5xl font-black dark:text-white tracking-tighter">{(result?.percentage || 0).toFixed(0)}%</span>
                                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Score</span>
                                 </div>
                             </div>
@@ -348,7 +349,7 @@ For questions or disputes, please contact the recruitment team.
                                                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Test Score:</span>
                                                     <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${item.score >= 70 ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 border-emerald-100 dark:border-emerald-900/50' : 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 border-amber-100 dark:border-amber-900/50'
                                                         }`}>
-                                                        {item.score.toFixed(0)}%
+                                                        {(item?.score || 0).toFixed(0)}%
                                                     </span>
                                                 </div>
                                             </div>
@@ -408,17 +409,17 @@ For questions or disputes, please contact the recruitment team.
                                     <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">AI Decision Profile</h2>
                                 </div>
 
-                                <div className={`p-6 rounded-3xl border ${aiEvaluation.rejectionReason.status === 'Accepted' ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-red-500/5 border-red-500/20'}`}>
+                                <div className={`p-6 rounded-3xl border ${aiEvaluation?.rejectionReason?.status === 'Accepted' ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-red-500/5 border-red-500/20'}`}>
                                     <div className="flex items-start gap-4">
-                                        <div className={`mt-1 p-2 rounded-lg ${aiEvaluation.rejectionReason.status === 'Accepted' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'}`}>
-                                            {aiEvaluation.rejectionReason.status === 'Accepted' ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
+                                        <div className={`mt-1 p-2 rounded-lg ${aiEvaluation?.rejectionReason?.status === 'Accepted' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'}`}>
+                                            {aiEvaluation?.rejectionReason?.status === 'Accepted' ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
                                         </div>
                                         <div className="flex-1">
-                                            <h5 className={`font-black text-sm uppercase tracking-wide mb-1 ${aiEvaluation.rejectionReason.status === 'Accepted' ? 'text-emerald-500' : 'text-red-500'}`}>
-                                                {aiEvaluation.rejectionReason.status === 'Accepted' ? 'Profile Status: Accepted' : 'Decision Insight: Rejected'}
+                                            <h5 className={`font-black text-sm uppercase tracking-wide mb-1 ${aiEvaluation?.rejectionReason?.status === 'Accepted' ? 'text-emerald-500' : 'text-red-500'}`}>
+                                                {aiEvaluation?.rejectionReason?.status === 'Accepted' ? 'Profile Status: Accepted' : 'Decision Insight: Rejected'}
                                             </h5>
                                             <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed font-medium italic">
-                                                "{aiEvaluation.rejectionReason.reason}"
+                                                "{aiEvaluation?.rejectionReason?.reason}"
                                             </p>
                                         </div>
                                     </div>
@@ -429,7 +430,7 @@ For questions or disputes, please contact the recruitment team.
                                                 <Sparkles className="w-4 h-4" /> Demonstrated Proficiencies
                                             </p>
                                             <div className="flex flex-wrap gap-2">
-                                                {aiEvaluation.rejectionReason.strengths?.map((s, i) => (
+                                                {aiEvaluation?.rejectionReason?.strengths?.map((s, i) => (
                                                     <span key={i} className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20 rounded-lg text-xs font-bold">
                                                         {s}
                                                     </span>
@@ -441,7 +442,7 @@ For questions or disputes, please contact the recruitment team.
                                                 <AlertTriangle className="w-4 h-4" /> Technical Gaps Detected
                                             </p>
                                             <div className="flex flex-wrap gap-2">
-                                                {aiEvaluation.rejectionReason.weaknesses?.map((w, i) => (
+                                                {aiEvaluation?.rejectionReason?.weaknesses?.map((w, i) => (
                                                     <span key={i} className="px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border border-red-100 dark:border-red-500/20 rounded-lg text-xs font-bold">
                                                         {w}
                                                     </span>
