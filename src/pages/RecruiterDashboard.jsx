@@ -232,7 +232,11 @@ const RecruiterDashboard = () => {
                                             candidates.map((candidate, index) => {
                                                 const fakeCredibility = Math.min(100, Math.max(0, candidate.percentage + (Math.random() * 20 - 10))).toFixed(0);
                                                 return (
-                                                    <tr key={candidate.id} className="group hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-all">
+                                                    <tr
+                                                        key={candidate.id}
+                                                        onClick={() => navigate(`/result/${candidate.jobId}`, { state: { ...candidate, isRecruiterView: true } })}
+                                                        className="group hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-all cursor-pointer"
+                                                    >
                                                         <td className="px-8 py-6">
                                                             <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs border-2 ${index === 0 ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl shadow-indigo-500/20' :
                                                                 'bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-100 dark:border-slate-700'

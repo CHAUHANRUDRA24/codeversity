@@ -110,8 +110,13 @@ const ResultPage = () => {
     const credibilityScore = credibilityData.credibilityScore.toFixed(0);
     const mismatchScore = (100 - credibilityScore).toFixed(0);
 
+    const isRecruiterView = location.state?.isRecruiterView;
+
     const downloadDetailedAudit = () => {
         // Generate detailed audit report
+        const candidateEmail = result.user?.email || user.email || 'N/A';
+        const candidateId = result.userId || user.uid;
+
         const reportContent = `
 ═══════════════════════════════════════════════════════════════
            INTELLIHIRE AI EVALUATION REPORT
@@ -121,8 +126,8 @@ const ResultPage = () => {
 
 CANDIDATE INFORMATION
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-User ID:              ${user.uid}
-Email:                ${user.email || 'N/A'}
+User ID:              ${candidateId}
+Email:                ${candidateEmail}
 Submission Date:      ${new Date(result.submittedAt).toLocaleString()}
 
 POSITION DETAILS
@@ -208,10 +213,10 @@ For questions or disputes, please contact the recruitment team.
                         </div>
                     </div>
                     <button
-                        onClick={() => navigate('/candidate-dashboard')}
+                        onClick={() => navigate(isRecruiterView ? '/recruiter-dashboard' : '/candidate-dashboard')}
                         className="flex items-center gap-3 px-8 py-4 bg-white dark:bg-slate-800 rounded-2xl text-xs font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:shadow-xl transition-all active:scale-95"
                     >
-                        <Home className="w-4 h-4" /> Exit Terminal
+                        <Home className="w-4 h-4" /> {isRecruiterView ? 'Back to Candidates' : 'Exit Terminal'}
                     </button>
                 </div>
 
@@ -229,17 +234,19 @@ For questions or disputes, please contact the recruitment team.
                                     ⚠️ Anti-Cheating Violation Detected
                                 </h3>
                                 <p className="text-sm font-bold text-amber-800 dark:text-amber-200 mb-3">
-                                    Your assessment was automatically submitted because you switched tabs or windows during the test. This violation has been flagged in your evaluation report.
+                                    {isRecruiterView
+                                        ? "This candidate switched tabs or windows during the assessment. This violation was automatically flagged."
+                                        : "Your assessment was automatically submitted because you switched tabs or windows during the test. This violation has been flagged in your evaluation report."
+                                    }
                                 </p>
                                 <div className="bg-white dark:bg-amber-950/30 rounded-xl p-4 border border-amber-200 dark:border-amber-800">
                                     <p className="text-xs font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider mb-2">
                                         📋 CONSEQUENCES:
                                     </p>
                                     <ul className="text-xs font-medium text-amber-600 dark:text-amber-400 space-y-1 list-disc list-inside">
-                                        <li>This incident has been recorded in your assessment history</li>
-                                        <li>Your current answers at the time of violation were saved</li>
-                                        <li>Recruiters will be notified of this policy violation</li>
-                                        <li>This may impact your candidacy for this position</li>
+                                        <li>This incident has been recorded in the assessment history</li>
+                                        <li>Answers at the time of violation were saved</li>
+                                        <li>Recruiters have been notified of this policy violation</li>
                                     </ul>
                                 </div>
                             </div>
@@ -382,9 +389,9 @@ For questions or disputes, please contact the recruitment team.
                                     }
                                 </p>
                                 <div className="flex flex-wrap gap-4">
-                                    <button onClick={() => navigate('/candidate-dashboard')} className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg ${isPass ? 'bg-emerald-600 text-white' : 'bg-orange-600 text-white'
+                                    <button onClick={() => navigate(isRecruiterView ? '/recruiter-dashboard' : '/candidate-dashboard')} className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg ${isPass ? 'bg-emerald-600 text-white' : 'bg-orange-600 text-white'
                                         }`}>
-                                        Go to dashboard
+                                        {isRecruiterView ? 'Back to Pipeline' : 'Back to Dashboard'}
                                     </button>
                                     <button onClick={downloadDetailedAudit} className="px-8 py-4 bg-white dark:bg-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">
                                         Download Detailed Audit
