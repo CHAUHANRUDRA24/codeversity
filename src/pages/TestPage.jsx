@@ -104,11 +104,14 @@ const TestPage = () => {
         // Guard: If called from onClick, isViolation might be an Event object, which we treat as false.
         const actualViolation = typeof isViolation === 'boolean' ? isViolation : false;
 
-        console.log("Starting submission process... (v3)", { actualViolation }); 
+        console.log("Starting submission process... (v3)", { actualViolation });
         if (!job || submitting) return;
         setSubmitting(true);
 
         try {
+            // Calculate grades before submitting
+            const gradingResults = await gradeAssessment(job, answers);
+
             // Sanitize grading results to remove any undefined values which Firestore doesn't support
             const safeGradingResults = JSON.parse(JSON.stringify(gradingResults));
 
