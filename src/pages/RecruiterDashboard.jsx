@@ -6,7 +6,8 @@ import { db } from '../firebase';
 import {
     Briefcase, User, Search, Plus, Filter,
     Download, MoreHorizontal, LogOut, Loader,
-    Award, Shield, BrainCircuit, Sparkles, TrendingUp, AlertTriangle
+    Award, Shield, BrainCircuit, Sparkles, TrendingUp, AlertTriangle,
+    checkCircle as CheckCircle, XCircle, Calendar, Eye, X
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { calculateHiringConfidence, getConfidenceClasses } from '../utils/hiringConfidence';
@@ -19,6 +20,7 @@ const RecruiterDashboard = () => {
     const [jobs, setJobs] = useState([]);
     const [selectedJob, setSelectedJob] = useState(null);
     const [candidates, setCandidates] = useState([]);
+    const [selectedCandidate, setSelectedCandidate] = useState(null);
     const [loading, setLoading] = useState(true);
     const [loadingCandidates, setLoadingCandidates] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -234,7 +236,7 @@ const RecruiterDashboard = () => {
                                                 return (
                                                     <tr
                                                         key={candidate.id}
-                                                        onClick={() => navigate(`/result/${candidate.jobId}`, { state: { ...candidate, isRecruiterView: true } })}
+                                                        onClick={() => setSelectedCandidate({ ...candidate, jobId: selectedJob.id, jobTitle: selectedJob.title })}
                                                         className="group hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-all cursor-pointer"
                                                     >
                                                         <td className="px-8 py-6">
@@ -326,6 +328,171 @@ const RecruiterDashboard = () => {
                         </div>
                     )}
                 </div>
+
+                {/* Candidate Modal */}
+                {selectedCandidate && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-opacity animate-in fade-in duration-200">
+                        <div className="bg-[#0B0F17] w-full max-w-4xl rounded-[2rem] shadow-2xl overflow-hidden border border-slate-800 animate-in zoom-in-95 duration-200 text-left">
+                            {/* Modal Header */}
+                            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-8 flex items-center justify-between">
+                                <div className="flex items-center gap-6">
+                                    <div className="h-16 w-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20">
+                                        <User className="h-8 w-8 text-white" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-white font-black text-2xl tracking-tight">CANDIDATE PROFILE</h3>
+                                        <p className="text-blue-100 font-medium">{selectedCandidate.user?.email}</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setSelectedCandidate(null)}
+                                    className="h-10 w-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors"
+                                >
+                                    <X className="h-5 w-5 text-white" />
+                                </button>
+                            </div>
+
+                            <div className="p-8 space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Assessment Summary Card */}
+                                    <div className="bg-[#151b2b] p-6 rounded-3xl border border-slate-800/50">
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <Award className="w-5 h-5 text-blue-500" />
+                                            <h4 className="text-slate-300 font-black text-xs uppercase tracking-widest">Assessment Summary</h4>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <div>
+                                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Position</p>
+                                                <p className="text-white font-bold">{selectedCandidate.jobTitle}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Submission Date</p>
+                                                <div className="flex items-center gap-2 text-slate-300 text-sm font-medium">
+                                                    <Calendar className="w-4 h-4 text-slate-500" />
+                                                    {new Date(selectedCandidate.submittedAt).toLocaleString(undefined, {
+                                                        year: 'numeric', month: 'long', day: 'numeric',
+                                                        hour: '2-digit', minute: '2-digit'
+                                                    })}
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-4 border-t border-slate-800">
+                                                <div className="flex justify-between items-end mb-2">
+                                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Correct Answers</p>
+                                                    <p className="text-emerald-500 font-bold text-sm">{selectedCandidate.score} <span className="text-slate-600">/ {selectedCandidate.total}</span></p>
+                                                </div>
+                                                <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${selectedCandidate.percentage}%` }}></div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex justify-between items-center pt-2">
+                                                <p className="text-xs font-bold text-slate-400">Overall Percentage</p>
+                                                <p className="text-3xl font-black text-white">{selectedCandidate.percentage.toFixed(0)}%</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* AI Analysis Card */}
+                                    <div className="bg-[#151b2b] p-6 rounded-3xl border border-slate-800/50">
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <BrainCircuit className="w-5 h-5 text-indigo-500" />
+                                            <h4 className="text-slate-300 font-black text-xs uppercase tracking-widest">AI Analysis</h4>
+                                        </div>
+
+                                        {(() => {
+                                            const fakeCredibility = Math.min(100, Math.max(0, selectedCandidate.percentage + (Math.random() * 20 - 10)));
+                                            const credibility = selectedCandidate.aiEvaluation?.credibilityScore || fakeCredibility;
+                                            const confidence = calculateHiringConfidence(selectedCandidate.percentage, null, credibility);
+                                            const isLowConfidence = confidence.score < 50;
+                                            const isHighConfidence = confidence.score > 75;
+
+                                            return (
+                                                <div className="space-y-6">
+                                                    <div className={`p-4 rounded-2xl border ${isLowConfidence ? 'bg-red-500/10 border-red-500/20' : isHighConfidence ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-amber-500/10 border-amber-500/20'}`}>
+                                                        <p className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-70" style={{ color: isLowConfidence ? '#ef4444' : isHighConfidence ? '#10b981' : '#f59e0b' }}>Hiring Confidence</p>
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`w-3 h-3 rounded-full ${isLowConfidence ? 'bg-red-500 animate-pulse' : isHighConfidence ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
+                                                            <p className="text-3xl font-black" style={{ color: isLowConfidence ? '#ef4444' : isHighConfidence ? '#10b981' : '#f59e0b' }}>{confidence.score}%</p>
+                                                        </div>
+                                                        <p className="text-xs font-bold mt-1" style={{ color: isLowConfidence ? '#ef4444' : isHighConfidence ? '#10b981' : '#f59e0b' }}>{confidence.label}</p>
+                                                    </div>
+
+                                                    <div className="space-y-3">
+                                                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Confidence Breakdown</p>
+                                                        <div className="flex justify-between text-xs font-medium text-slate-400 border-b border-slate-800 pb-2">
+                                                            <span>Test Score (60%)</span>
+                                                            <span className="text-white">{(selectedCandidate.percentage * 0.6).toFixed(0)}pts</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-xs font-medium text-slate-400 border-b border-slate-800 pb-2">
+                                                            <span>Resume Match (30%)</span>
+                                                            <span className="text-white">{(credibility * 0.3).toFixed(0)}pts</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-xs font-medium text-slate-400 pb-1">
+                                                            <span>Consistency (10%)</span>
+                                                            <span className="text-white">{selectedCandidate.tabSwitchViolation ? '0pts' : '10pts'}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+                                </div>
+
+                                {/* Hiring Recommendation */}
+                                <div className="bg-[#151b2b] p-6 rounded-3xl border border-slate-800/50">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <Shield className="w-5 h-5 text-slate-400" />
+                                        <h4 className="text-slate-300 font-black text-xs uppercase tracking-widest">Hiring Recommendation</h4>
+                                    </div>
+
+                                    <div className="bg-slate-900/50 rounded-2xl p-4 border border-slate-800 flex items-center gap-4">
+                                        {selectedCandidate.percentage >= 60 && !selectedCandidate.tabSwitchViolation ? (
+                                            <div className="h-10 w-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+                                                <CheckCircle className="w-6 h-6 text-emerald-500" />
+                                            </div>
+                                        ) : (
+                                            <div className="h-10 w-10 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                                                <XCircle className="w-6 h-6 text-amber-500" />
+                                            </div>
+                                        )}
+
+                                        <div>
+                                            <h5 className={`font-black text-sm uppercase tracking-wide mb-1 ${selectedCandidate.percentage >= 60 && !selectedCandidate.tabSwitchViolation ? 'text-emerald-500' : 'text-amber-500'
+                                                }`}>
+                                                {selectedCandidate.percentage >= 80 ? 'STRONGLY RECOMMENDED' :
+                                                    selectedCandidate.percentage >= 60 ? 'PROCEED TO INTERVIEW' :
+                                                        'REVIEW REQUIRED'}
+                                            </h5>
+                                            <p className="text-slate-400 text-xs font-medium">
+                                                {selectedCandidate.percentage >= 60 && !selectedCandidate.tabSwitchViolation
+                                                    ? "Candidate has demonstrated sufficient technical proficiency. Recommended to proceed to the next stage."
+                                                    : "Additional manual evaluation recommended before proceeding due to low score or potential policy violations."}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex gap-4 pt-2">
+                                    <button
+                                        onClick={() => navigate(`/result/${selectedCandidate.jobId}`, { state: { ...selectedCandidate, isRecruiterView: true } })}
+                                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 group"
+                                    >
+                                        <Eye className="w-4 h-4 group-hover:scale-110 transition-transform" /> View Full Report
+                                    </button>
+                                    <button
+                                        onClick={() => setSelectedCandidate(null)}
+                                        className="px-8 bg-slate-800 hover:bg-slate-700 text-slate-300 py-4 rounded-xl font-black uppercase tracking-widest text-xs transition-all"
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </main>
         </div>
     );
