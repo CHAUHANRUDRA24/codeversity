@@ -7,7 +7,7 @@ import {
     Briefcase, User, Search, Plus, Filter,
     Download, MoreHorizontal, LogOut, Loader,
     Award, Shield, BrainCircuit, Sparkles, TrendingUp, AlertTriangle,
-    CheckCircle, XCircle, Calendar, Eye, X
+    CheckCircle, XCircle, Calendar, Eye, X, HelpCircle, FileText
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { calculateHiringConfidence, getConfidenceClasses } from '../utils/hiringConfidence';
@@ -265,7 +265,7 @@ const RecruiterDashboard = () => {
                                                         </td>
                                                         <td className="px-8 py-6">
                                                             <div className="flex items-center gap-4">
-                                                                <span className="font-black text-slate-900 dark:text-white w-10">{candidate.percentage.toFixed(0)}%</span>
+                                                                <span className="font-black text-slate-900 dark:text-white w-10">{(candidate.percentage || 0).toFixed(0)}%</span>
                                                                 <div className="h-1.5 w-32 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                                                     <div className={`h-full transition-all duration-1000 ${candidate.percentage >= 60 ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${candidate.percentage}%` }}></div>
                                                                 </div>
@@ -389,7 +389,7 @@ const RecruiterDashboard = () => {
 
                                             <div className="flex justify-between items-center pt-2">
                                                 <p className="text-xs font-bold text-slate-400">Overall Percentage</p>
-                                                <p className="text-3xl font-black text-white">{selectedCandidate.percentage.toFixed(0)}%</p>
+                                                <p className="text-3xl font-black text-white">{(selectedCandidate.percentage || 0).toFixed(0)}%</p>
                                             </div>
                                         </div>
                                     </div>
@@ -423,11 +423,11 @@ const RecruiterDashboard = () => {
                                                         <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Confidence Breakdown</p>
                                                         <div className="flex justify-between text-xs font-medium text-slate-400 border-b border-slate-800 pb-2">
                                                             <span>Test Score (60%)</span>
-                                                            <span className="text-white">{(selectedCandidate.percentage * 0.6).toFixed(0)}pts</span>
+                                                            <span className="text-white">{((selectedCandidate.percentage || 0) * 0.6).toFixed(0)}pts</span>
                                                         </div>
                                                         <div className="flex justify-between text-xs font-medium text-slate-400 border-b border-slate-800 pb-2">
                                                             <span>Resume Match (30%)</span>
-                                                            <span className="text-white">{(credibility * 0.3).toFixed(0)}pts</span>
+                                                            <span className="text-white">{((credibility || 0) * 0.3).toFixed(0)}pts</span>
                                                         </div>
                                                         <div className="flex justify-between text-xs font-medium text-slate-400 pb-1">
                                                             <span>Consistency (10%)</span>

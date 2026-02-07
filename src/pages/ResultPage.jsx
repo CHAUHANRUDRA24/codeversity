@@ -462,8 +462,8 @@ For questions or disputes, please contact the recruitment team.
 
                             <div className="grid grid-cols-1 gap-4">
                                 {aiEvaluation?.details?.map((detail, idx) => {
-                                    const isCorrect = detail.isCorrect || detail.score >= 1;
-                                    const isSkipped = !detail.userAnswer;
+                                    const isCorrect = detail?.isCorrect || detail?.score >= 1;
+                                    const isSkipped = !detail?.userAnswer;
 
                                     return (
                                         <div key={idx} className="bg-white dark:bg-slate-900/50 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row gap-6 items-start">
@@ -479,13 +479,13 @@ For questions or disputes, please contact the recruitment team.
                                                     <div className="flex flex-col gap-1">
                                                         <span className="text-slate-400">Candidate Answer</span>
                                                         <span className={isSkipped ? 'text-orange-500' : isCorrect ? 'text-emerald-500' : 'text-red-500'}>
-                                                            {isSkipped ? 'SKIPPED' : detail.userAnswer}
+                                                            {isSkipped ? 'SKIPPED' : detail?.userAnswer}
                                                         </span>
                                                     </div>
                                                     {detail.feedback && (
                                                         <div className="flex flex-col gap-1 max-w-lg">
                                                             <span className="text-blue-500">AI Feedback</span>
-                                                            <span className="text-slate-500 lowercase normal-case font-medium">{detail.feedback}</span>
+                                                            <span className="text-slate-500 lowercase normal-case font-medium">{detail?.feedback}</span>
                                                         </div>
                                                     )}
                                                 </div>
