@@ -6,7 +6,8 @@ import { db } from '../firebase';
 import {
     Briefcase, User, Search, Plus, Filter,
     Download, MoreHorizontal, LogOut, Loader,
-    Award, Shield, BrainCircuit, Sparkles, TrendingUp, AlertTriangle, Users
+    Award, Shield, BrainCircuit, Sparkles, TrendingUp, AlertTriangle, Users,
+    X, CheckCircle, XCircle, Calendar, Eye
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { calculateHiringConfidence, getConfidenceClasses } from '../utils/hiringConfidence';
@@ -20,6 +21,7 @@ const RecruiterDashboard = () => {
     const [selectedJob, setSelectedJob] = useState(null);
     const [candidates, setCandidates] = useState([]);
     const [rejectedCandidates, setRejectedCandidates] = useState([]); // New State
+    const [selectedCandidate, setSelectedCandidate] = useState(null);
     const [loading, setLoading] = useState(true);
     const [loadingCandidates, setLoadingCandidates] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(true);

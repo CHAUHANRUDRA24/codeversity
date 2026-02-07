@@ -19,7 +19,7 @@ const Sidebar = ({ role = 'recruiter', user, onLogout, sidebarOpen, setSidebarOp
 
     const links = role === 'recruiter' ? recruiterLinks : candidateLinks;
 
-    const activeClass = "bg-blue-600/10 text-blue-600 dark:bg-blue-600/20";
+    const activeClass = "bg-indigo-600/10 text-indigo-600 dark:bg-indigo-600/20";
     const inactiveClass = "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800";
 
     return (
@@ -44,14 +44,14 @@ const Sidebar = ({ role = 'recruiter', user, onLogout, sidebarOpen, setSidebarOp
                                 onClick={() => navigate(link.path)}
                                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group w-full text-left ${isActive ? activeClass : inactiveClass}`}
                             >
-                                <span className={`material-symbols-outlined text-[24px] ${isActive ? 'fill-1' : ''} group-hover:text-blue-600 transition-colors`}>{link.icon}</span>
+                                <span className={`material-symbols-outlined text-[24px] ${isActive ? 'fill-1' : ''} group-hover:text-indigo-600 transition-colors`}>{link.icon}</span>
                                 <span className="text-sm font-medium">{link.label}</span>
                             </button>
                         );
                     })}
 
-                    <button onClick={onLogout} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-500 group w-full text-left mt-auto">
-                        <span className="material-symbols-outlined text-[24px] group-hover:text-red-600 transition-colors">logout</span>
+                    <button onClick={onLogout} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/20 dark:hover:text-amber-500 group w-full text-left mt-auto">
+                        <span className="material-symbols-outlined text-[24px] group-hover:text-amber-600 transition-colors">logout</span>
                         <span className="text-sm font-medium">Logout</span>
                     </button>
                 </nav>

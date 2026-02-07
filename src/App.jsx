@@ -55,12 +55,12 @@ function App() {
           } />
 
 
-           {/* Admin Setup Route */}
-           <Route path="/account-create" element={<AdminSetup />} />
+          {/* Admin Setup Route */}
+          <Route path="/account-create" element={<AdminSetup />} />
 
-           {/* Redirects */}
-           <Route path="/dashboard" element={<Navigate to="/login" replace />} />
-           <Route path="*" element={<Navigate to="/" replace />} />
+          {/* Redirects */}
+          <Route path="/dashboard" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
     </AuthProvider>
