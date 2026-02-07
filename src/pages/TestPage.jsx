@@ -3,11 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
-import {
-    Briefcase, Timer, CheckCircle, ArrowRight,
-    BrainCircuit, Sparkles, Shield, ChevronRight,
-    Loader, HelpCircle, FileText
-} from 'lucide-react';
+import { CheckCircle, Clock, AlertTriangle, Play } from 'lucide-react';
 
 const TestPage = () => {
     const { jobId } = useParams();
@@ -18,8 +14,7 @@ const TestPage = () => {
     const [answers, setAnswers] = useState({});
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
-    const [timeLeft, setTimeLeft] = useState(15 * 60); // 15 mins default
-    const [activeQuestion, setActiveQuestion] = useState(0);
+    const [timeLeft, setTimeLeft] = useState(1800); // 30 minutes
 
     useEffect(() => {
         const fetchJob = async () => {
@@ -32,46 +27,64 @@ const TestPage = () => {
                 // If job has estimatedTime, use it
                 if (data.estimatedTime) setTimeLeft(data.estimatedTime * 60);
             } else {
-                navigate('/candidate-dashboard');
+                console.error("Job not found");
+                navigate('/candidate-dashboard'); 
             }
             setLoading(false);
         };
         fetchJob();
     }, [jobId]);
 
-    // Timer logic
+    // Timer Logic
     useEffect(() => {
-        if (loading || submitting || timeLeft <= 0) return;
-        const timer = setInterval(() => {
-            setTimeLeft(prev => prev - 1);
-        }, 1000);
-        return () => clearInterval(timer);
-    }, [loading, submitting, timeLeft]);
+        if (!loading && job) {
+            const timer = setInterval(() => {
+                setTimeLeft((prev) => {
+                    if (prev <= 1) {
+                        clearInterval(timer);
+                        handleSubmit(); // Auto-submit
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+            return () => clearInterval(timer);
+        }
+    }, [loading, job]);
+
+    const handleAnswerChange = (questionId, value) => {
+        setAnswers(prev => ({
+            ...prev,
+            [questionId]: value
+        }));
+    };
 
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    };
-
-    const handleAnswerChange = (questionId, selectedOption) => {
-        setAnswers(prev => ({
-            ...prev,
-            [questionId]: selectedOption
-        }));
+        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
     };
 
     const handleSubmit = async () => {
-        if (!job) return;
+        if (!job || submitting) return;
         setSubmitting(true);
 
         let score = 0;
-        const total = job.questions.length;
+        let total = job.questions.length;
 
-        // Scoring
-        job.questions.forEach((q, index) => {
-            if (answers[index] === q.correctAnswer) {
-                score++;
+        job.questions.forEach(q => {
+            const userAnswer = answers[q.id];
+            
+            if (q.type === 'mcq' || !q.type) {
+                // MCQ grading
+                if (userAnswer === q.correctAnswer) {
+                    score++;
+                }
+            } else if (q.type === 'subjective' || q.type === 'coding') {
+                // "AI" Grading Simulation: Full points for non-empty meaningful answer (>10 chars)
+                if (userAnswer && userAnswer.trim().length > 10) {
+                    score++; 
+                }
             }
         });
 
@@ -86,20 +99,10 @@ const TestPage = () => {
                 total: total,
                 percentage: percentage,
                 submittedAt: new Date().toISOString(),
-                createdAt: serverTimestamp(),
-                // Simulated AI evaluation data per the user's concept
-                aiEvaluation: {
-                    credibilityScore: Math.min(100, Math.max(0, percentage + (Math.random() * 20 - 10))),
-                    skillSync: [
-                        { skill: 'Core Knowledge', claimed: 'Expert', verified: percentage >= 80 ? 'Expert' : percentage >= 60 ? 'Intermediate' : 'Entry', score: percentage },
-                        { skill: 'Execution Strategy', claimed: 'Senior', verified: percentage >= 70 ? 'Optimal' : 'Standard', score: Math.min(100, percentage + 5) }
-                    ],
-                    recommendation: percentage >= 60 ? "Proceed with High Priority" : "Re-evaluate Skill Alignment"
-                }
+                answers: answers // Save full answers for review
             });
 
-            // Navigate to evaluation/result page
-            navigate(`/result/${jobId}`, { state: { score, total, percentage, aiEvaluation: true } });
+            navigate(`/result/${jobId}`, { state: { score, total, percentage } });
         } catch (error) {
             console.error("Error submitting test:", error);
             alert("Failed to submit test.");
@@ -108,50 +111,141 @@ const TestPage = () => {
     };
 
     if (loading) return (
-        <div className="min-h-screen flex items-center justify-center bg-[#0f172a]">
-            <div className="flex flex-col items-center">
-                <Loader className="w-12 h-12 text-blue-500 animate-spin mb-4" />
-                <p className="text-slate-400 font-black uppercase tracking-widest text-xs">Syncing Assessment Data...</p>
-            </div>
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
     );
+    
+    if (!job) return <div className="p-8 text-center">Job not found.</div>;
 
-    if (!job) return <div>Job not found.</div>;
-
-    const currentQ = job.questions[activeQuestion];
     const progress = (Object.keys(answers).length / job.questions.length) * 100;
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans selection:bg-blue-100 dark:bg-[#0f172a] transition-colors duration-500">
-            {/* Header / HUD */}
-            <header className="sticky top-0 z-50 bg-white/80 dark:bg-[#1e293b]/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 h-20 shadow-sm">
-                <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-500/20">
-                            <BrainCircuit className="text-white w-6 h-6" />
-                        </div>
-                        <div>
-                            <h2 className="text-sm font-black dark:text-white uppercase tracking-tight">{job.title}</h2>
-                            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Technical Assessment Module</p>
-                        </div>
+        <div className="min-h-screen bg-gray-50 font-sans">
+            {/* Header / Timer Bar */}
+            <div className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10 px-4 py-3">
+                <div className="max-w-4xl mx-auto flex justify-between items-center">
+                    <div>
+                        <h1 className="font-bold text-gray-800 text-lg">{job.title}</h1>
+                        <p className="text-xs text-gray-500">Assessment</p>
                     </div>
+                    <div className="flex items-center gap-4">
+                         <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full font-mono font-medium ${timeLeft < 300 ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>
+                            <Clock size={16} />
+                            {formatTime(timeLeft)}
+                         </div>
+                         <button 
+                            onClick={handleSubmit} 
+                            disabled={submitting}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                         >
+                            {submitting ? 'Submitting...' : 'Finish Test'}
+                         </button>
+                    </div>
+                </div>
+                {/* Progress Bar */}
+                <div className="h-1 w-full bg-gray-100 absolute bottom-0 left-0">
+                    <div className="h-full bg-indigo-500 transition-all duration-300" style={{ width: `${progress}%` }}></div>
+                </div>
+            </div>
 
-                    <div className="flex items-center gap-8">
-                        <div className="flex flex-col items-end">
-                            <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Time Remaining</p>
-                            <div className={`flex items-center gap-2 font-black text-xl tracking-tighter ${timeLeft < 120 ? 'text-red-500 animate-pulse' : 'text-slate-900 dark:text-white'}`}>
-                                <Timer className="w-5 h-5" />
-                                {formatTime(timeLeft)}
+            <div className="max-w-3xl mx-auto py-8 px-4">
+                <div className="space-y-8">
+                    {job.questions.map((q, index) => (
+                        <div key={q.id || index} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                            {/* Question Header */}
+                            <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-start">
+                                <div className="flex gap-3">
+                                    <span className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm">
+                                        {index + 1}
+                                    </span>
+                                    <div>
+                                        <h3 className="font-medium text-gray-900 text-lg">
+                                            {q.type === 'coding' ? q.title : q.question}
+                                        </h3>
+                                        {q.type === 'coding' && (
+                                            <p className="text-sm text-gray-500 mt-1">{q.description}</p>
+                                        )}
+                                        <span className="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-gray-200 text-gray-600">
+                                            {q.type || 'MCQ'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {/* Question Body */}
+                            <div className="p-6">
+                                {/* MCQ RENDERER */}
+                                {(q.type === 'mcq' || !q.type) && (
+                                    <div className="space-y-3">
+                                        {q.options?.map((option, i) => (
+                                            <label 
+                                                key={i} 
+                                                className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all ${answers[q.id] === option ? 'border-indigo-600 bg-indigo-50' : 'border-gray-100 hover:border-indigo-100 hover:bg-gray-50'}`}
+                                            >
+                                                <input
+                                                    type="radio"
+                                                    name={`question-${q.id}`}
+                                                    value={option}
+                                                    checked={answers[q.id] === option}
+                                                    onChange={() => handleAnswerChange(q.id, option)}
+                                                    className="h-5 w-5 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                                                />
+                                                <span className="ml-3 text-gray-700 font-medium">{option}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* SUBJECTIVE RENDERER */}
+                                {q.type === 'subjective' && (
+                                    <div className="space-y-2">
+                                        <textarea 
+                                            className="w-full h-32 p-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-sans text-sm resize-none"
+                                            placeholder="Type your detailed answer here..."
+                                            value={answers[q.id] || ''}
+                                            onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+                                        ></textarea>
+                                        <p className="text-xs text-gray-400 text-right">
+                                            {(answers[q.id] || '').length} chars
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* CODING RENDERER */}
+                                {q.type === 'coding' && (
+                                    <div className="space-y-2">
+                                        <div className="bg-slate-900 rounded-lg overflow-hidden">
+                                            <div className="bg-slate-800 px-4 py-2 flex items-center gap-2">
+                                                <div className="flex gap-1.5">
+                                                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                                                </div>
+                                                <span className="text-xs text-slate-400 ml-2 font-mono">solution.js</span>
+                                            </div>
+                                            <textarea 
+                                                className="w-full h-48 p-4 bg-slate-900 text-slate-50 font-mono text-sm focus:outline-none resize-none"
+                                                placeholder={q.starterCode || "// Write your code here"}
+                                                value={answers[q.id] || q.starterCode || ''}
+                                                onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+                                                spellCheck="false"
+                                            ></textarea>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
-                        <button
-                            onClick={handleSubmit}
-                            disabled={submitting}
-                            className="bg-slate-900 dark:bg-blue-600 text-white px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-black dark:hover:bg-blue-700 transition-all shadow-xl shadow-slate-200 dark:shadow-none transform active:scale-95 disabled:opacity-50"
-                        >
-                            {submitting ? 'Terminating...' : 'Finalize & Submit'}
-                        </button>
-                    </div>
+                    ))}
+                </div>
+
+                <div className="mt-8 flex justify-end">
+                    <button
+                        onClick={handleSubmit}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg shadow-emerald-200 transition-all hover:-translate-y-1"
+                    >
+                        Submit Final Assessment
+                    </button>
                 </div>
                 {/* Progress Bar */}
                 <div className="absolute bottom-0 left-0 h-1 bg-slate-100 dark:bg-slate-800 w-full">

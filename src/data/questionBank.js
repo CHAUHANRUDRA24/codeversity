@@ -124,9 +124,68 @@ export const questionBank = {
         correctAnswer: "O(log n)"
       }
     ]
-  };
-  
-  export const getAllQuestions = () => {
-      // Helper to return flat list if needed
-      return Object.values(questionBank).flat();
-  };
+};
+
+export const subjectiveBank = {
+    react: [
+        "Explain the Virtual DOM and how it improves performance in React applications.",
+        "Describe the difference between State and Props. When would you use one over the other?",
+        "How do you handle side effects in React functional components?",
+        "Explain the standard React component lifecycle."
+    ],
+    javascript: [
+        "Explain the concept of 'Closure' in JavaScript with an example.",
+        "What is the Event Loop and how does it handle asynchronous operations?",
+        "Discuss the difference between 'var', 'let', and 'const'.",
+        "Explain prototype inheritance in JavaScript."
+    ],
+    general: [
+        "Describe a challenging bug you fixed recently and your approach to solving it.",
+        "How do you prioritize tasks when working on multiple features under tight deadlines?",
+        "Explain the importance of code reviews and your process for conducting them.",
+        "What is REST API and what are its key constraints?"
+    ]
+};
+
+export const codingBank = {
+    javascript: [
+        {
+            title: "Reverse a String",
+            description: "Write a function that reverses a string without using built-in reverse() method.",
+            starterCode: "function reverseString(str) {\n  // Your code here\n}"
+        },
+        {
+            title: "Flatten Array",
+            description: "Write a function that takes a nested array and returns a flat array.",
+            starterCode: "function flatten(arr) {\n  // Your code here\n}"
+        },
+        {
+            title: "Palindrome Check",
+            description: "Write a function to check if a string is a palindrome.",
+            starterCode: "function isPalindrome(str) {\n  // Your code here\n}"
+        }
+    ],
+    python: [
+        {
+            title: "FizzBuzz",
+            description: "Print numbers 1 to 100. For multiples of 3 print 'Fizz', for 5 'Buzz', for both 'FizzBuzz'.",
+            starterCode: "def fizz_buzz():\n    # Your code here"
+        },
+        {
+            title: "Two Sum",
+            description: "Given an array of integers and a target, return indices of the two numbers such that they add up to target.",
+            starterCode: "def two_sum(nums, target):\n    # Your code here"
+        }
+    ],
+    general: [
+        {
+            title: "Find Maximum",
+            description: "Write a function to find the maximum number in an array.",
+            starterCode: "// Write your solution here"
+        }
+    ]
+};
+
+export const getAllQuestions = () => {
+    return Object.values(questionBank).flat();
+};
