@@ -4,6 +4,7 @@ import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/fires
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { gradeAssessment } from '../services/gradingService';
+import { gradeEntireAssessment } from '../services/aiService';
 import { CheckCircle, Clock, AlertTriangle, Play, Sparkles, Shield, HelpCircle, ChevronRight, Loader } from 'lucide-react';
 
 const TestPage = () => {
@@ -110,14 +111,18 @@ const TestPage = () => {
 
         try {
             // Calculate grading results
-            const gradingResults = await gradeAssessment(job, answers);
+            // const gradingResults = await gradeAssessment(job, answers);
+            
+            // USE AI GRADING
+            const aiResults = await gradeEntireAssessment(job, answers);
 
             // Sanitize grading results to remove any undefined values which Firestore doesn't support
-            const safeGradingResults = JSON.parse(JSON.stringify(gradingResults));
+            const safeGradingResults = JSON.parse(JSON.stringify(aiResults));
 
-            const score = gradingResults.totalScore;
-            const total = gradingResults.totalQuestions;
-            const percentage = (score / total) * 100;
+            const score = aiResults.totalScore;
+            // const total = gradingResults.totalQuestions; 
+            const total = aiResults.maxScore; // Use maxScore from AI (e.g. 80 for 8 questions)
+            const percentage = aiResults.percentage;
 
             await addDoc(collection(db, "results"), {
                 userId: user.uid,
@@ -139,7 +144,7 @@ const TestPage = () => {
                     total,
                     percentage,
                     tabSwitchViolation: actualViolation || tabSwitchViolation,
-                    aiEvaluation: gradingResults
+                    aiEvaluation: aiResults
                 }
             });
         } catch (error) {

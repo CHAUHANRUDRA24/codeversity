@@ -273,34 +273,33 @@ const CandidateDashboard = () => {
                                     ) : (
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             {jobs.map(job => (
-                                                <div key={job.id} className="group bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-8 hover:border-blue-500/30 transition-all duration-300 relative hover:shadow-2xl hover:shadow-blue-900/5 flex flex-col h-full">
-                                                    
+                                                <div key={job.id} className="group relative bg-[#0B1121] rounded-[2rem] border border-slate-800 p-8 flex flex-col h-full hover:border-slate-700 transition-all shadow-2xl">
+                                                    {/* Header */}
                                                     <div className="flex justify-between items-start mb-8">
-                                                        <div className="p-3 bg-slate-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-                                                            <Briefcase className="w-6 h-6" />
+                                                        <div className="h-12 w-12 bg-[#161f32] rounded-2xl flex items-center justify-center text-blue-500 border border-slate-800">
+                                                            <Briefcase className="w-5 h-5" />
                                                         </div>
-                                                        <span className="px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-black uppercase tracking-widest">
+                                                        <span className="bg-white text-[#0B1121] text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
                                                             Active
                                                         </span>
                                                     </div>
 
-                                                    <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight mb-3 line-clamp-2 min-h-[3.5rem]">{job.title}</h3>
-                                                    <p className="text-slate-500 dark:text-slate-400 text-xs font-medium mb-8 line-clamp-3 leading-relaxed flex-grow">{job.description}</p>
+                                                    {/* Content */}
+                                                    <h3 className="text-white font-black text-lg uppercase tracking-tight mb-3 line-clamp-1">{job.title}</h3>
+                                                    <p className="text-slate-400 text-xs font-medium mb-8 line-clamp-2 leading-relaxed flex-grow">{job.description}</p>
                                                     
-                                                    <div className="flex items-center gap-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest pt-6 border-t border-slate-100 dark:border-slate-800">
+                                                    {/* Meta Data */}
+                                                    <div className="flex items-center gap-6 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-8 border-b border-slate-800 pb-8 border-dashed">
                                                         <span className="flex items-center gap-2"><Clock className="h-3.5 w-3.5" /> 15 Mins</span>
                                                         <span className="flex items-center gap-2"><Layout className="h-3.5 w-3.5" /> {job.questions?.length || 5} Items</span>
                                                     </div>
 
+                                                    {/* Action Button */}
                                                     <button 
                                                         onClick={() => navigate(`/test/${job.id}`)}
-                                                        className="absolute inset-0 z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-white/50 dark:bg-slate-900/50 backdrop-blur-[2px]"
+                                                        className="w-full bg-[#2563eb] hover:bg-[#3b82f6] text-white py-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 active:scale-[0.98]"
                                                     >
-                                                        <div className="absolute bottom-8 right-8">
-                                                            <div className="h-10 w-10 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-blue-500/30 transform group-hover:scale-110 transition-all">
-                                                                <Play className="w-4 h-4 ml-0.5" />
-                                                            </div>
-                                                        </div>
+                                                        Start Test <Play className="w-3 h-3 fill-current" />
                                                     </button>
                                                 </div>
                                             ))}

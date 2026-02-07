@@ -191,3 +191,64 @@ export const analyzeResume = async (resumeText) => {
         };
     }
 };
+
+
+export const gradeEntireAssessment = async (job, userAnswers) => {
+    // Construct the assessment data for the AI
+    const assessmentData = job.questions.map((q, index) => ({
+        id: q.id || `q${index}`,
+        type: q.type,
+        question: q.question,
+        options: q.options || [],
+        userAnswer: userAnswers[index] || "No Answer Provided"
+    }));
+
+    const prompt = `
+        You are an expert technical interviewer and grader. 
+        Evaluate the following candidate assessment for the role of "${job.title}".
+        
+        Job Description Context: ${job.description}
+        
+        Assessment Data (Questions and User Answers):
+        ${JSON.stringify(assessmentData)}
+
+        Instructions:
+        1. For MCQs: Determine the strictly correct answer from the options. Compare with user's answer.
+        2. For Subjective: Evaluate the quality, depth, and correctness of the user's response.
+        3. For Coding: Check if the logic is correct and solves the problem.
+        
+        Output a JSON object with this EXACT structure:
+        {
+            "totalScore": (sum of individual scores),
+            "maxScore": (total possible points, assume 10 points per question),
+            "percentage": (0-100),
+            "feedback": "Overall summary of the candidate's performance in 2-3 sentences.",
+            "questions": [
+                {
+                    "id": "question id",
+                    "question": "question text",
+                    "userAnswer": "user's full answer",
+                    "correctAnswer": "The correct option or a model answer",
+                    "isCorrect": boolean,
+                    "score": (0-10),
+                    "feedback": "Brief explanation of why it is correct or wrong"
+                }
+            ]
+        }
+    `;
+
+    try {
+        const jsonStr = await groqFetch([
+            { role: "system", content: "You are a precise grading engine. Output strictly valid JSON." },
+            { role: "user", content: prompt }
+        ], 0.2);
+        
+        // Handle potential markedown wrapping
+        const cleanJson = jsonStr.replace(/```json/g, '').replace(/```/g, '').trim();
+        return JSON.parse(cleanJson);
+    } catch (error) {
+        console.error("AI Grading Error:", error);
+        // Fallback or re-throw
+        throw new Error("Failed to grade assessment with AI.");
+    }
+};

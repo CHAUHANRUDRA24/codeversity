@@ -134,14 +134,14 @@ ${jobDetails ? `Experience Level:     ${jobDetails.experienceLevel || 'N/A'}` : 
 ASSESSMENT OUTCOME
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Mission Status:       ${isPass ? 'SUCCESS' : 'INCONCLUSIVE'}
-Overall Score:        ${result.percentage.toFixed(0)}% (${result.score}/${result.total} correct)
+Overall Score:        ${result.percentage.toFixed(0)}% (${result.score}/${result.total} points)
 Pass Threshold:       60%
 Result:               ${isPass ? 'PASSED ✓' : 'NEEDS REVIEW ⚠'}
 
 VERIFICATION ACCURACY BREAKDOWN
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Correct Answers:      ${result.score}
-Total Questions:      ${result.total}
+Points Scored:      ${result.score}
+Max Points:         ${result.total}
 Accuracy Rate:        ${result.percentage.toFixed(0)}%
 Performance Level:    ${result.percentage >= 80 ? 'Exceptional' : result.percentage >= 60 ? 'Verified' : 'Review Required'}
 
@@ -278,11 +278,11 @@ For questions or disputes, please contact the recruitment team.
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Correct</p>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Points Scored</p>
                                     <p className="text-xl font-black text-slate-900 dark:text-white">{result.score}</p>
                                 </div>
                                 <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total</p>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Max Points</p>
                                     <p className="text-xl font-black text-slate-900 dark:text-white">{result.total}</p>
                                 </div>
                             </div>
@@ -363,6 +363,8 @@ For questions or disputes, please contact the recruitment team.
                             ? 'bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/30 text-emerald-900 dark:text-emerald-100'
                             : 'bg-rose-50/50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-900/30 text-rose-900 dark:text-rose-100'
                             }`}>
+                            
+                            {/* ... (Existing AI Conclusion Content) ... */}
                             <div className="relative z-10">
                                 <div className="flex items-center gap-4 mb-6">
                                     <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shadow-lg ${isPass ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}`}>
@@ -376,9 +378,9 @@ For questions or disputes, please contact the recruitment team.
                                     </div>
                                 </div>
                                 <p className="text-sm font-bold leading-relaxed mb-10 opacity-80 max-w-2xl">
-                                    {isPass
+                                    {aiData.feedback || (isPass
                                         ? "The candidate's technical execution aligns with the complexity expected for this role. Credibility score indicates low risk for the hiring team."
-                                        : "Significant deviation between claimed years of experience/expertise and test execution patterns. Recommend manual verification of resume project history."
+                                        : "Significant deviation between claimed years of experience/expertise and test execution patterns. Recommend manual verification of resume project history.")
                                     }
                                 </p>
                                 <div className="flex flex-wrap gap-4">
@@ -392,6 +394,78 @@ For questions or disputes, please contact the recruitment team.
                                 </div>
                             </div>
                         </div>
+
+                        {/* DETAILED ANSWER BREAKDOWN */}
+                        {aiData.questions && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <FileText className="w-6 h-6 text-indigo-600" />
+                                    <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Assessment Breakdown</h2>
+                                </div>
+
+                                {aiData.questions.map((q, idx) => (
+                                    <div key={idx} className={`p-8 rounded-[2.5rem] border transition-all ${
+                                        q.isCorrect 
+                                            ? 'bg-emerald-50/30 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/30' 
+                                            : 'bg-rose-50/30 dark:bg-rose-900/10 border-rose-100 dark:border-rose-900/30'
+                                    }`}>
+                                        <div className="flex items-start justify-between gap-6">
+                                            <div className="flex-1 space-y-4">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="h-8 w-8 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center font-black text-xs text-slate-400 border border-slate-200 dark:border-slate-700 shadow-sm">
+                                                        {idx + 1}
+                                                    </span>
+                                                    <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-relaxed">
+                                                        {q.question}
+                                                    </h3>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                                                    <div>
+                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Canidate Answer</p>
+                                                        <div className={`p-4 rounded-2xl text-xs font-medium border ${
+                                                            q.isCorrect 
+                                                                ? 'bg-emerald-100/50 text-emerald-800 border-emerald-200' 
+                                                                : 'bg-rose-100/50 text-rose-800 border-rose-200'
+                                                        }`}>
+                                                            {q.userAnswer}
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Ideal Answer</p>
+                                                         <div className="p-4 rounded-2xl text-xs font-medium bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                                            {q.correctAnswer}
+                                                         </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="pt-4 border-t border-slate-200/50 dark:border-slate-700/50 mt-4">
+                                                     <div className="flex items-start gap-2">
+                                                        <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                                                        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed text-balance">
+                                                            <span className="font-bold text-blue-600 dark:text-blue-400">AI Feedback:</span> {q.feedback}
+                                                        </p>
+                                                     </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="hidden md:flex flex-col items-end gap-2">
+                                                <div className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg ${
+                                                    q.isCorrect 
+                                                        ? 'bg-emerald-500 text-white' 
+                                                        : 'bg-rose-500 text-white'
+                                                }`}>
+                                                    {q.isCorrect ? 'Correct' : 'Incorrect'}
+                                                </div>
+                                                <span className="text-[10px] font-bold text-slate-400">
+                                                    {q.score}/10 points
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

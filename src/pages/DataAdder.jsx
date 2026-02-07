@@ -73,8 +73,14 @@ const DataAdder = () => {
                     status: "open",
                     createdAt: new Date().toISOString(),
                     questions: [
-                         { id: "q1", type: "mcq", question: "Which hook is best for complex state logic?", options: ["useState", "useEffect", "useReducer", "useRef"] },
-                         { id: "q2", type: "coding", title: "Two Sum", description: "Find indices of two numbers that add up to target.", starterCode: "function twoSum(nums, target) {\n  \n}" }
+                        { id: "q1", type: "mcq", question: "Which hook is best for complex state logic?", options: ["useState", "useEffect", "useReducer", "useRef"] },
+                        { id: "q2", type: "mcq", question: "What is the primary purpose of process.nextTick() in Node.js?", options: ["To schedule a callback after the current event loop", "To execute immediately", "To run before IO operations", "To delay execution efficiently"] },
+                        { id: "q3", type: "mcq", question: "Which HTTP status code represents 'Forbidden'?", options: ["401", "403", "404", "500"] },
+                        { id: "q4", type: "mcq", question: "What is the difference between SQL and NoSQL?", options: ["Scalability approach", "Language used", "Data storage model", "All of the above"] },
+                        { id: "q5", type: "mcq", question: "In React, what prevents unnecessary re-renders?", options: ["React.memo", "useEffect", "useState", "Context API"] },
+                        { id: "q6", type: "subjective", question: "Explain how you would architect a real-time chat application using WebSockets." },
+                        { id: "q7", type: "subjective", question: "Describe a challenging bug you faced in a production environment and how you resolved it." },
+                        { id: "q8", type: "coding", title: "Two Sum", description: "Find indices of two numbers that add up to target.", starterCode: "function twoSum(nums, target) {\n  \n}" }
                     ]
                 },
                 {
@@ -88,8 +94,14 @@ const DataAdder = () => {
                     status: "open",
                     createdAt: new Date().toISOString(),
                     questions: [
-                         { id: "q1", type: "mcq", question: "What property handles element stacking?", options: ["z-index", "display", "position", "float"] },
-                         { id: "q2", type: "subjective", question: "Explain your process for responsive design." }
+                        { id: "q1", type: "mcq", question: "What property handles element stacking?", options: ["z-index", "display", "position", "float"] },
+                        { id: "q2", type: "mcq", question: "Which unit is relative to the root element font size?", options: ["em", "rem", "px", "vh"] },
+                        { id: "q3", type: "mcq", question: "What does semantic HTML improve?", options: ["SEO and Accessibility", "Styling speed", "Execution time", "Memory usage"] },
+                        { id: "q4", type: "mcq", question: "Which method creates a shallow copy of an array?", options: ["slice()", "push()", "pop()", "splice()"] },
+                        { id: "q5", type: "mcq", question: "What is a 'Pure Component' in React?", options: ["Renders same output for same props", "Does not use state", "Has no side effects", "Uses pure functions"] },
+                        { id: "q6", type: "subjective", question: "Explain your process for ensuring responsiveness across different device sizes." },
+                        { id: "q7", type: "subjective", question: "How do you optimize the performance of a React application with heavy animations?" },
+                        { id: "q8", type: "coding", title: "Debounce Function", description: "Implement a debounce function in JavaScript.", starterCode: "function debounce(func, wait) {\n  \n}" }
                     ]
                 },
                 {
@@ -104,7 +116,13 @@ const DataAdder = () => {
                     createdAt: new Date().toISOString(),
                     questions: [
                         { id: "q1", type: "mcq", question: "Which protocol is best for real-time data?", options: ["HTTP/1.1", "WebSockets", "SMTP", "FTP"] },
-                        { id: "q2", type: "coding", title: "Rate Limiter", description: "Implement a simple token bucket algorithm.", starterCode: "class RateLimiter {\n  \n}" }
+                        { id: "q2", type: "mcq", question: "What does ACID stand for?", options: ["Atomicity, Consistency, Isolation, Durability", "Accuracy, Consistency, Integrity, Durability", "Atomicity, Connectivity, Isolation, Data", "None"] },
+                        { id: "q3", type: "mcq", question: "Which is a message broker?", options: ["Kafka", "PostgreSQL", "Redis", "Nginx"] },
+                        { id: "q4", type: "mcq", question: "What is Database Sharding?", options: ["Horizontal partitioning", "Vertical partitioning", "Backup strategy", "Encryption method"] },
+                        { id: "q5", type: "mcq", question: "What is the CAP theorem?", options: ["Consistency, Availability, Partition Tolerance", "Consistency, Accuracy, Performance", "Connectivity, Availability, Protocol", "None"] },
+                        { id: "q6", type: "subjective", question: "How would you handle a sudden spike in traffic for an API?" },
+                        { id: "q7", type: "subjective", question: "Explain the difference between vertical and horizontal scaling." },
+                        { id: "q8", type: "coding", title: "Rate Limiter", description: "Implement a simple token bucket algorithm.", starterCode: "class RateLimiter {\n  \n}" }
                     ]
                 },
                 {
@@ -119,7 +137,13 @@ const DataAdder = () => {
                     createdAt: new Date().toISOString(),
                     questions: [
                         { id: "q1", type: "mcq", question: "What is a 'flaky' test?", options: ["A test that fails randomly", "A slow test", "A unit test", "A manual test"] },
-                        { id: "q2", type: "subjective", question: "How do you handle testing dynamic content?" }
+                        { id: "q2", type: "mcq", question: "Which command runs Cypress in headless mode?", options: ["cypress run", "cypress open", "cypress start", "cypress head"] },
+                        { id: "q3", type: "mcq", question: "What is regression testing?", options: ["Testing existing functionality after changes", "Testing new features", "Performance testing", "Security testing"] },
+                        { id: "q4", type: "mcq", question: "What represents a successful HTTP request?", options: ["200", "404", "500", "301"] },
+                        { id: "q5", type: "mcq", question: "What is the purpose of a test assertion?", options: ["To verify expectation meets reality", "To run the test", "To log errors", "To compile code"] },
+                        { id: "q6", type: "subjective", question: "How do you handle testing dynamic content that takes time to load?" },
+                        { id: "q7", type: "subjective", question: "Describe the difference between Black Box and White Box testing." },
+                        { id: "q8", type: "coding", title: "Validate Email", description: "Write a function to validate an email string.", starterCode: "function isValidEmail(email) {\n  \n}" }
                     ]
                 },
                 {
@@ -133,8 +157,14 @@ const DataAdder = () => {
                     status: "open",
                     createdAt: new Date().toISOString(),
                     questions: [
-                        { id: "q1", type: "subjective", question: "Define a success metric for a Chatbot." },
-                        { id: "q2", type: "mcq", question: "What is RAG?", options: ["Retrieval-Augmented Generation", "Random AI Generation", "Rapid API Gateway", "None"] }
+                        { id: "q1", type: "mcq", question: "What is RAG?", options: ["Retrieval-Augmented Generation", "Random AI Generation", "Rapid API Gateway", "None"] },
+                        { id: "q2", type: "mcq", question: "Which metric best measures chatbot user satisfaction?", options: ["CSAT Score", "Latency", "Throughput", "Model size"] },
+                        { id: "q3", type: "mcq", question: "What is 'Hallucination' in AI?", options: ["Generates false information confidently", "System crash", "Slow response", "Data leak"] },
+                        { id: "q4", type: "mcq", question: "Which is a common model for product prioritization?", options: ["RICE", "SOLID", "ACID", "DRY"] },
+                        { id: "q5", type: "mcq", question: "What does MVP stand for?", options: ["Minimum Viable Product", "Most Valuable Player", "Maximum Viable Product", "Minimum Verified Process"] },
+                        { id: "q6", type: "subjective", question: "Define a success metric for a new Chatbot feature." },
+                        { id: "q7", type: "subjective", question: "How would you handle a situation where the AI model is producing biased results?" },
+                        { id: "q8", type: "coding", title: "Data Parsing", description: "Write a pseudo-code to filter high-priority user feedback from a list.", starterCode: "function filterFeedback(feedbackList) {\n  \n}" }
                     ]
                 },
                 {
@@ -149,7 +179,13 @@ const DataAdder = () => {
                     createdAt: new Date().toISOString(),
                     questions: [
                         { id: "q1", type: "mcq", question: "What does kubectl apply do?", options: ["Creates/Updates resources", "Deletes pod", "Lists nodes", "Logs in"] },
-                        { id: "q2", type: "coding", title: "Bash Script", description: "Write a script to check disk usage.", starterCode: "#!/bin/bash\n" }
+                        { id: "q2", type: "mcq", question: "Which tool is used for Infrastructure as Code?", options: ["Terraform", "Jenkins", "Docker", "Git"] },
+                        { id: "q3", type: "mcq", question: "What is a Docker container?", options: ["Lightweight, standalone executable", "Virtual Machine", "Physical Server", "Database"] },
+                        { id: "q4", type: "mcq", question: "Which port is SSH typically on?", options: ["22", "80", "443", "8080"] },
+                        { id: "q5", type: "mcq", question: "What is CI/CD?", options: ["Continuous Integration/Continuous Deployment", "Code Integration/Code Debugging", "Cloud Infrastructure/Cloud Data", "None"] },
+                        { id: "q6", type: "subjective", question: "Explain your process for handling a production outage." },
+                        { id: "q7", type: "subjective", question: "How do you ensure security in a CI/CD pipeline?" },
+                        { id: "q8", type: "coding", title: "Bash Script", description: "Write a script to check disk usage and verify if it is above 80%.", starterCode: "#!/bin/bash\n" }
                     ]
                 },
                 {
@@ -164,7 +200,13 @@ const DataAdder = () => {
                     createdAt: new Date().toISOString(),
                     questions: [
                         { id: "q1", type: "mcq", question: "Which is a Flutter layout widget?", options: ["Column", "Div", "Section", "Span"] },
-                        { id: "q2", type: "coding", title: "Flutter Widget", description: "Create a stateful counter widget.", starterCode: "class Counter extends StatefulWidget {\n  \n}" }
+                        { id: "q2", type: "mcq", question: "What is the programming language for Flutter?", options: ["Dart", "Swift", "Java", "Kotlin"] },
+                        { id: "q3", type: "mcq", question: "Which widget allows user input?", options: ["TextField", "Text", "Container", "Label"] },
+                        { id: "q4", type: "mcq", question: "What is 'Hot Reload'?", options: ["Injecting updated source code files", "Restarting the app", "Reinstalling the app", "Clearing cache"] },
+                        { id: "q5", type: "mcq", question: "Difference between StatefulWidget and StatelessWidget?", options: ["Stateful has mutable state", "Stateless acts fast", "Stateful is only for iOS", "No difference"] },
+                        { id: "q6", type: "subjective", question: "How do you handle offline data synchronization in a mobile app?" },
+                        { id: "q7", type: "subjective", question: "Explain the App Store submission process." },
+                        { id: "q8", type: "coding", title: "Flutter Widget", description: "Create a simple stateful counter widget.", starterCode: "class Counter extends StatefulWidget {\n  \n}" }
                     ]
                 },
                  {
@@ -179,7 +221,13 @@ const DataAdder = () => {
                     createdAt: new Date().toISOString(),
                     questions: [
                         { id: "q1", type: "mcq", question: "What is XSS?", options: ["Cross Site Scripting", "Cross Site Styling", "XML Style Sheet", "None"] },
-                        { id: "q2", type: "subjective", question: "How would you handle a DDoS attack?" }
+                        { id: "q2", type: "mcq", question: "Which protocol is secure?", options: ["HTTPS", "HTTP", "FTP", "Telnet"] },
+                        { id: "q3", type: "mcq", question: "What is Phishing?", options: ["Social engineering attack", "Network scanning", "Virus", "DDoS"] },
+                        { id: "q4", type: "mcq", question: "What does a Firewall do?", options: ["Monitors and controls network traffic", "Encrypts data", "Speeds up internet", "Stores passwords"] },
+                        { id: "q5", type: "mcq", question: "What is SQL Injection?", options: ["Malicious SQL code insertion", "Database backup", "Optimizing query", "None"] },
+                        { id: "q6", type: "subjective", question: "How would you handle a DDoS attack?" },
+                        { id: "q7", type: "subjective", question: "Explain the concept of 'Zero Trust' security." },
+                        { id: "q8", type: "coding", title: "Log Parser", description: "Write a script to detect repeated failed login attempts from a log file.", starterCode: "def parse_logs(log_data):\n  \n" }
                     ]
                 },
                 {
@@ -193,8 +241,14 @@ const DataAdder = () => {
                     status: "open",
                     createdAt: new Date().toISOString(),
                     questions: [
-                        { id: "q1", type: "mcq", question: "Which algorithm is suitable for classification?", options: ["Linear Regression", "K-Means", "Logistic Regression", "PCA"] },
-                        { id: "q2", type: "coding", title: "Data Cleaning", description: "Write a function to fill NaN values with mean.", starterCode: "def clean_data(df):\n  \n" }
+                        { id: "q1", type: "mcq", question: "Which algorithm is suitable for classification?", options: ["Logistic Regression", "Linear Regression", "K-Means", "PCA"] },
+                        { id: "q2", type: "mcq", question: "What is Overfitting?", options: ["Model learns noise", "Model is too simple", "Data is messy", "None"] },
+                        { id: "q3", type: "mcq", question: "What library is used for DataFrames in Python?", options: ["Pandas", "Numpy", "Matplotlib", "Request"] },
+                        { id: "q4", type: "mcq", question: "What is a p-value?", options: ["Probability of observing results given null hypothesis", "Precision value", "Pass value", "None"] },
+                        { id: "q5", type: "mcq", question: "Which method is used for dimensionality reduction?", options: ["PCA", "SVM", "Random Forest", "Naive Bayes"] },
+                        { id: "q6", type: "subjective", question: "Explain the Bias-Variance tradeoff." },
+                        { id: "q7", type: "subjective", question: "How do you handle missing data in a large dataset?" },
+                        { id: "q8", type: "coding", title: "Data Cleaning", description: "Write a function to fill NaN values in a DataFrame with the column mean.", starterCode: "def clean_data(df):\n  \n" }
                     ]
                 }
             ];
