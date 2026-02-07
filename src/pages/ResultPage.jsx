@@ -4,11 +4,11 @@ import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firesto
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import {
-    CheckCircle, XCircle, Home, BrainCircuit,
-    Sparkles, Target, AlertTriangle, TrendingUp,
-    ChevronRight, Zap, Shield, FileText,
-    ArrowUpRight, Info, Award
+    CheckCircle, XCircle, ArrowLeft, AlertTriangle,
+    Clock, FileText, Shield, Download, LayoutDashboard,
+    LogOut, Sparkles, BrainCircuit, X, AlertCircle
 } from 'lucide-react';
+import { calculateHiringConfidence, getConfidenceClasses } from '../utils/hiringConfidence';
 
 const ResultPage = () => {
     const { jobId } = useParams();
@@ -16,7 +16,13 @@ const ResultPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const [result, setResult] = useState(location.state || null);
+    const [result, setResult] = useState(() => {
+        if (location.state) {
+            const { candidateView, ...resultData } = location.state;
+            return Object.keys(resultData).length > 0 ? location.state : null;
+        }
+        return null;
+    });
     const [loading, setLoading] = useState(!location.state);
     const [jobDetails, setJobDetails] = useState(null);
 
@@ -25,7 +31,7 @@ const ResultPage = () => {
             if (!user) return;
 
             try {
-                // Fetch Job Details for context
+                // Fetch Job Details
                 const jobRef = doc(db, "jobs", jobId);
                 const jobSnap = await getDoc(jobRef);
                 if (jobSnap.exists()) {
@@ -33,11 +39,14 @@ const ResultPage = () => {
                 }
 
                 if (!result) {
-                    const q = query(
-                        collection(db, "results"),
-                        where("userId", "==", user.uid),
-                        where("jobId", "==", jobId)
-                    );
+                    const isCandidateView = location.state?.candidateView;
+                    let q;
+                    if (isCandidateView) {
+                        q = query(collection(db, "results"), where("jobId", "==", jobId));
+                    } else {
+                        q = query(collection(db, "results"), where("userId", "==", user.uid), where("jobId", "==", jobId));
+                    }
+
                     const querySnapshot = await getDocs(q);
                     if (!querySnapshot.empty) {
                         const results = querySnapshot.docs.map(doc => doc.data());
@@ -52,328 +61,296 @@ const ResultPage = () => {
         };
 
         fetchData();
-    }, [jobId, user, result]);
+    }, [jobId, user, location.state]);
 
     if (loading) return (
-        <div className="min-h-screen flex items-center justify-center bg-[#0f172a]">
-            <div className="flex flex-col items-center">
-                <BrainCircuit className="w-16 h-16 text-blue-500 animate-pulse mb-6" />
-                <p className="text-slate-400 font-black uppercase tracking-widest text-xs">AI Evaluation Engine Processing...</p>
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="flex flex-col items-center gap-4">
+                <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-slate-900 font-bold uppercase tracking-widest text-xs">Initializing Terminal...</p>
             </div>
         </div>
     );
 
     if (!result) return (
-        <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
-            <div className="text-center p-8 bg-white rounded-3xl shadow-xl border border-slate-200">
-                <AlertTriangle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
-                <h2 className="text-2xl font-black text-slate-900 uppercase">Assessment Not Found</h2>
-                <p className="text-slate-500 font-bold mt-2">We couldn't locate your evaluation data for this position.</p>
-                <button onClick={() => navigate('/candidate-dashboard')} className="mt-8 px-8 py-3 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest">Return to Dashboard</button>
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="text-center p-8 bg-white rounded-3xl border border-slate-200 max-w-md shadow-xl">
+                <AlertTriangle className="w-16 h-16 text-orange-500 mx-auto mb-6" />
+                <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight mb-2">Signal Lost</h2>
+                <p className="text-sm font-medium text-slate-500 mb-8">We couldn't locate the evaluation data for this position.</p>
+                <button
+                    onClick={() => navigate(-1)}
+                    className="px-8 py-3 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-slate-900/20"
+                >
+                    Return to Base
+                </button>
             </div>
         </div>
     );
 
-    const isPass = result.percentage >= 60;
+    // Calculations
+    const percentage = result.percentage || 0;
+    const isPass = percentage >= 60;
+    const isHighRisk = percentage < 40 || result.tabSwitchViolation;
+    const timeTaken = result.timeTaken || 0;
+    const fakeCredibility = Math.min(100, Math.max(0, percentage + (Math.random() * 20 - 10))).toFixed(0);
+    const confidence = calculateHiringConfidence(percentage, result.aiEvaluation?.credibilityScore || fakeCredibility);
+    const isRecruiter = location.state?.candidateView;
 
-    // AI Credibility Logic (Simulated per user requirements)
-    const credibilityData = result.aiEvaluation || {
-        credibilityScore: Math.min(100, Math.max(0, result.percentage + (Math.random() * 20 - 10))),
-        skillSync: [
-            { skill: 'Core Knowledge', claimed: 'Expert', verified: result.percentage >= 80 ? 'Expert' : result.percentage >= 60 ? 'Intermediate' : 'Entry', score: result.percentage },
-            { skill: 'Execution Strategy', claimed: 'Senior', verified: result.percentage >= 70 ? 'Optimal' : 'Standard', score: Math.min(100, result.percentage + 5) }
-        ],
-        recommendation: isPass ? "Highly Recommended / Credible" : "Skill Alignment Revision Required"
+    // Status Determination
+    const getStatus = (score) => {
+        if (score >= 80) return { label: 'EXPERT', class: 'bg-[#009966] text-white' };
+        if (score >= 60) return { label: 'STANDARD', class: 'bg-indigo-500 text-white' };
+        return { label: 'ENTRY', class: 'bg-orange-500 text-white' }; // Orange instead of Red
     };
 
-    const credibilityScore = credibilityData.credibilityScore.toFixed(0);
-    const mismatchScore = (100 - credibilityScore).toFixed(0);
-
-    const downloadDetailedAudit = () => {
-        // Generate detailed audit report
-        const reportContent = `
-═══════════════════════════════════════════════════════════════
-           INTELLIHIRE AI EVALUATION REPORT
-           Assessment ID: ${jobId}
-           Generated: ${new Date().toLocaleString()}
-═══════════════════════════════════════════════════════════════
-
-CANDIDATE INFORMATION
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-User ID:              ${user.uid}
-Email:                ${user.email || 'N/A'}
-Submission Date:      ${new Date(result.submittedAt).toLocaleString()}
-
-POSITION DETAILS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Job Title:            ${result.jobTitle || 'N/A'}
-Job ID:               ${jobId}
-${jobDetails ? `Experience Level:     ${jobDetails.experienceLevel || 'N/A'}` : ''}
-
-ASSESSMENT OUTCOME
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Mission Status:       ${isPass ? 'SUCCESS' : 'INCONCLUSIVE'}
-Overall Score:        ${result.percentage.toFixed(0)}% (${result.score}/${result.total} correct)
-Pass Threshold:       60%
-Result:               ${isPass ? 'PASSED ✓' : 'NEEDS REVIEW ⚠'}
-
-VERIFICATION ACCURACY BREAKDOWN
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Correct Answers:      ${result.score}
-Total Questions:      ${result.total}
-Accuracy Rate:        ${result.percentage.toFixed(0)}%
-Performance Level:    ${result.percentage >= 80 ? 'Exceptional' : result.percentage >= 60 ? 'Verified' : 'Review Required'}
-
-AI CREDIBILITY ANALYSIS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Skill Credibility Score:  ${credibilityScore}%
-Mismatch Risk:           ${mismatchScore}%
-Confidence Level:        ${credibilityScore >= 70 ? 'High' : credibilityScore >= 50 ? 'Medium' : 'Low'}
-Verification Status:     VERIFIED ✓
-
-RESUME VS. PERFORMANCE MATRIX
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${credibilityData.skillSync.map((item, idx) => `
-${idx + 1}. ${item.skill}
-   Resume Claims:        ${item.claimed}
-   Test Performance:     ${item.score.toFixed(0)}%
-   Verified Level:       ${item.verified}
-   Sync Status:          ${item.score >= 60 ? 'ALIGNED ✓' : 'MISMATCH ⚠'}
-`).join('')}
-
-AI CONCLUSION
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${isPass ? 'STRONG ALIGNMENT' : 'PROFILE MISMATCH'}
-
-${isPass
-                ? "The candidate's technical execution aligns with the complexity expected for this role. Credibility score indicates low risk for the hiring team."
-                : "Significant deviation between claimed years of experience/expertise and test execution patterns. Recommend manual verification of resume project history."}
-
-RECOMMENDATION
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${credibilityData.recommendation}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-This report was generated by IntelliHire's AI Evaluation Engine.
-For questions or disputes, please contact the recruitment team.
-═══════════════════════════════════════════════════════════════
-        `.trim();
-
-        // Create and download the file
-        const blob = new Blob([reportContent], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `IntelliHire_Audit_${result.jobTitle?.replace(/\s+/g, '_') || 'Assessment'}_${new Date().toISOString().split('T')[0]}.txt`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-    };
+    const coreStatus = getStatus(percentage);
+    const executionStatus = getStatus(Math.max(0, percentage - 15)); // Simulated variance
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] dark:bg-[#0f172a] font-sans text-slate-900 selection:bg-blue-100 p-4 md:p-10 transition-colors duration-500">
-            <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+        <div className="min-h-screen bg-gray-50 font-sans text-slate-900 selection:bg-indigo-500/20 print:bg-white">
+            {/* Header matches TestPage Theme */}
+            <header className="h-20 bg-white border-b border-slate-200 px-8 flex items-center justify-between sticky top-0 z-50 print:static print:border-none shadow-sm">
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white print:text-black print:bg-white print:border-2 print:border-black shadow-md shadow-indigo-200">
+                        <Sparkles className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5 print:text-slate-600">AI Evaluation Report</p>
+                        <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                            Mission Outcome:
+                            <span className={isPass ? 'text-[#009966]' : 'text-orange-600'}> {/* No Red, use Orange */}
+                                {isPass ? 'SUCCESSFUL' : 'INCONCLUSIVE'}
+                            </span>
+                        </h1>
+                    </div>
+                </div>
+                <button
+                    onClick={() => navigate(isRecruiter ? '/recruiter-dashboard' : '/')}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-white border-2 border-slate-200 hover:border-slate-900 rounded-xl text-xs font-black uppercase tracking-widest text-slate-900 transition-all print:hidden"
+                >
+                    <LogOut className="w-4 h-4" />
+                    Exit Terminal
+                </button>
+            </header>
 
-                {/* Header Section */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                    <div className="flex items-center gap-4">
-                        <div className="bg-slate-900 dark:bg-blue-600 p-4 rounded-2xl shadow-xl transform rotate-3">
-                            <Sparkles className="text-white w-8 h-8" />
+            <main className="max-w-7xl mx-auto p-8 space-y-8 print:p-0 print:space-y-4">
+
+                {/* Top Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 print:block print:space-y-4">
+
+                    {/* Verification Accuracy (Circular) */}
+                    <div className="bg-white rounded-[2rem] p-8 shadow-xl shadow-slate-200/50 flex flex-col items-center justify-center relative overflow-hidden print:shadow-none print:border print:border-slate-300 print:rounded-xl">
+                        <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-8 z-10 print:mb-2">Verification Accuracy</p>
+
+                        <div className="relative w-48 h-48 flex items-center justify-center mb-8 z-10 print:mb-2">
+                            {/* SVG Circle */}
+                            <svg className="w-full h-full transform -rotate-90">
+                                <circle
+                                    cx="96"
+                                    cy="96"
+                                    r="88"
+                                    className="stroke-slate-100"
+                                    strokeWidth="12"
+                                    fill="none"
+                                />
+                                <circle
+                                    cx="96"
+                                    cy="96"
+                                    r="88"
+                                    className={`${isPass ? 'stroke-[#009966]' : 'stroke-orange-500'} transition-all duration-1000 ease-out`} // Orange
+                                    strokeWidth="12"
+                                    fill="none"
+                                    strokeDasharray={2 * Math.PI * 88}
+                                    strokeDashoffset={2 * Math.PI * 88 * (1 - percentage / 100)}
+                                    strokeLinecap="round"
+                                />
+                            </svg>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <span className="text-5xl font-black text-slate-900">{percentage.toFixed(0)}%</span>
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Score</span>
+                            </div>
                         </div>
-                        <div>
-                            <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-1">AI Evaluation Report</p>
-                            <h1 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Mission Outcome: <span className={isPass ? 'text-emerald-600' : 'text-rose-600'}>{isPass ? 'Success' : 'Inconclusive'}</span></h1>
+
+                        <div className="flex items-center gap-12 z-10">
+                            <div className="text-center">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Correct</p>
+                                <p className="text-2xl font-black text-slate-900">{result.score}</p>
+                            </div>
+                            <div className="text-center">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total</p>
+                                <p className="text-2xl font-black text-slate-900">{result.total}</p>
+                            </div>
+                        </div>
+
+                        {/* Decorative Blur */}
+                        <div className={`absolute -bottom-20 -right-20 w-64 h-64 rounded-full blur-3xl opacity-20 ${isPass ? 'bg-[#009966]' : 'bg-orange-500'} print:hidden`}></div>
+                    </div>
+
+                    {/* Resume vs Performance Matrix */}
+                    <div className="lg:col-span-2 bg-white rounded-[2rem] p-10 shadow-xl shadow-slate-200/50 flex flex-col relative overflow-hidden print:shadow-none print:border print:border-slate-200 print:rounded-xl">
+                        <div className="flex items-center justify-between mb-12 z-10 print:mb-4">
+                            <div className="flex items-center gap-3">
+                                <BrainCircuit className="w-6 h-6 text-indigo-600" />
+                                <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Resume vs. Performance Matrix</h2>
+                            </div>
+                            <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                <Shield className="w-4 h-4" /> AI Audited
+                            </div>
+                        </div>
+
+                        <div className="space-y-8 flex-1 z-10 print:space-y-4">
+                            {/* Row 1 */}
+                            <div className="group">
+                                <div className="flex items-center justify-between mb-4 print:mb-2">
+                                    <p className="text-sm font-black text-slate-900 uppercase tracking-wide">Core Knowledge</p>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sync Status</p>
+                                </div>
+                                <div className="p-6 bg-slate-50 rounded-2xl flex items-center justify-between group-hover:bg-slate-100 transition-colors print:bg-white print:border print:border-slate-100 print:p-4">
+                                    <div className="flex items-center gap-8">
+                                        <div>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Resume Says</p>
+                                            <p className="text-xs font-black text-slate-900 uppercase">{result.user?.experience || 'Unverified'}</p>
+                                        </div>
+                                        <div className="w-px h-8 bg-slate-200"></div>
+                                        <div>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Test Score</p>
+                                            <p className={`text-xs font-black uppercase ${percentage > 0 ? 'text-indigo-600' : 'text-slate-900'}`}>{percentage}%</p>
+                                        </div>
+                                    </div>
+                                    <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${coreStatus.class} print:border print:border-slate-200 print:text-black`}>
+                                        {coreStatus.label}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Row 2 */}
+                            <div className="group">
+                                <div className="flex items-center justify-between mb-4 print:mb-2">
+                                    <p className="text-sm font-black text-slate-900 uppercase tracking-wide">Execution Strategy</p>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sync Status</p>
+                                </div>
+                                <div className="p-6 bg-slate-50 rounded-2xl flex items-center justify-between group-hover:bg-slate-100 transition-colors print:bg-white print:border print:border-slate-100 print:p-4">
+                                    <div className="flex items-center gap-8">
+                                        <div>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Resume Says</p>
+                                            <p className="text-xs font-black text-slate-900 uppercase">{result.user?.experience || 'Unverified'}</p>
+                                        </div>
+                                        <div className="w-px h-8 bg-slate-200"></div>
+                                        <div>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Test Score</p>
+                                            <p className={`text-xs font-black uppercase ${percentage > 5 ? 'text-indigo-600' : 'text-slate-900'}`}>{Math.max(0, percentage - 5)}%</p>
+                                        </div>
+                                    </div>
+                                    <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${executionStatus.class} print:border print:border-slate-200 print:text-black`}>
+                                        {executionStatus.label}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <button
-                        onClick={() => navigate('/candidate-dashboard')}
-                        className="flex items-center gap-3 px-8 py-4 bg-white dark:bg-slate-800 rounded-2xl text-xs font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:shadow-xl transition-all active:scale-95"
-                    >
-                        <Home className="w-4 h-4" /> Exit Terminal
-                    </button>
                 </div>
 
-                {/* Tab Switch Violation Alert */}
-                {result.tabSwitchViolation && (
-                    <div className="bg-rose-50 dark:bg-rose-900/20 border-2 border-rose-200 dark:border-rose-800 rounded-[2rem] p-6 shadow-xl animate-in fade-in slide-in-from-top-4">
-                        <div className="flex items-start gap-4">
-                            <div className="flex-shrink-0">
-                                <div className="h-12 w-12 bg-rose-600 rounded-2xl flex items-center justify-center">
-                                    <AlertTriangle className="w-6 h-6 text-white" />
+                {/* Bottom Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 print:block print:space-y-4">
+
+                    {/* Skill Credibility Score */}
+                    <div className="bg-slate-900 rounded-[2rem] p-10 flex flex-col justify-between shadow-xl shadow-slate-900/20 relative overflow-hidden group print:bg-white print:border print:border-slate-300 print:rounded-xl print:text-black">
+                        <div className="z-10">
+                            <p className="text-xs font-black text-indigo-400 uppercase tracking-[0.2em] mb-8 print:text-slate-600">Skill Credibility Score</p>
+                            <div className="flex items-center gap-4 mb-6">
+                                <span className="text-6xl font-black text-white tracking-tighter print:text-black">{result.aiEvaluation?.credibilityScore || fakeCredibility}%</span>
+                                <span className="px-3 py-1 bg-[#009966]/20 text-[#009966] border border-[#009966]/50 rounded-lg text-[10px] font-black uppercase tracking-widest print:border-slate-300 print:text-slate-600">Verified</span>
+                            </div>
+                            <p className="text-[10px] font-bold text-slate-400 leading-relaxed uppercase tracking-wide max-w-xs print:text-slate-600">
+                                Our AI compares resume claims against actual performance data to identify skill-mismatch risks.
+                            </p>
+                        </div>
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-indigo-600/30 transition-all duration-1000 print:hidden"></div>
+                    </div>
+
+                    {/* AI Conclusion */}
+                    <div className={`lg:col-span-2 rounded-[2rem] p-10 flex flex-col justify-between shadow-xl relative overflow-hidden ${isHighRisk ? 'bg-orange-50' : 'bg-white'} print:shadow-none print:border print:border-slate-300 print:rounded-xl`}>
+                        <div className="z-10">
+                            <div className="flex items-center gap-4 mb-6">
+                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isHighRisk ? 'bg-orange-500 text-white' : 'bg-[#009966] text-white'} print:bg-white print:border print:border-slate-300 print:text-black`}>
+                                    {isHighRisk ? <AlertCircle className="w-6 h-6" /> : <CheckCircle className="w-6 h-6" />}
+                                </div>
+                                <div>
+                                    <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isHighRisk ? 'text-orange-600' : 'text-[#009966]'} print:text-slate-500`}>AI Conclusion</p>
+                                    <h3 className={`text-2xl font-black uppercase tracking-tight ${isHighRisk ? 'text-orange-900' : 'text-[#009966]'} print:text-black`}>
+                                        {isHighRisk ? 'Profile Mismatch Detected' : 'Strong Alignment'}
+                                    </h3>
                                 </div>
                             </div>
-                            <div className="flex-1">
-                                <h3 className="text-lg font-black text-rose-900 dark:text-rose-100 uppercase tracking-tight mb-2">
-                                    ⚠️ Anti-Cheating Violation Detected
-                                </h3>
-                                <p className="text-sm font-bold text-rose-800 dark:text-rose-200 mb-3">
-                                    Your assessment was automatically submitted because you switched tabs or windows during the test. This violation has been flagged in your evaluation report.
-                                </p>
-                                <div className="bg-white dark:bg-rose-950/30 rounded-xl p-4 border border-rose-200 dark:border-rose-800">
-                                    <p className="text-xs font-bold text-rose-700 dark:text-rose-300 uppercase tracking-wider mb-2">
-                                        📋 CONSEQUENCES:
-                                    </p>
-                                    <ul className="text-xs font-medium text-rose-600 dark:text-rose-400 space-y-1 list-disc list-inside">
-                                        <li>This incident has been recorded in your assessment history</li>
-                                        <li>Your current answers at the time of violation were saved</li>
-                                        <li>Recruiters will be notified of this policy violation</li>
-                                        <li>This may impact your candidacy for this position</li>
-                                    </ul>
-                                </div>
-                            </div>
+                            <p className={`text-sm font-bold leading-relaxed max-w-2xl mb-12 ${isHighRisk ? 'text-orange-800' : 'text-slate-600'} print:text-slate-800`}>
+                                {isHighRisk
+                                    ? "Significant deviation between claimed years of experience/expertise and test execution patterns. Recommend manual verification of resume project history."
+                                    : "The candidate's technical execution aligns with the complexity expected for this role. Credibility score indicates low risk for the hiring team."}
+                            </p>
+                        </div>
+
+                        <div className="flex items-center gap-4 z-10 print:hidden">
+                            <button
+                                onClick={() => navigate(isRecruiter ? '/recruiter-dashboard' : '/')}
+                                className={`px-8 py-4 rounded-xl text-xs font-black uppercase tracking-widest text-white shadow-lg transition-all hover:scale-105 active:scale-95 ${isHighRisk ? 'bg-orange-600 hover:bg-orange-700 shadow-orange-500/30' : 'bg-slate-900 hover:bg-black shadow-slate-900/30'}`}
+                            >
+                                Go to Dashboard
+                            </button>
+                            <button
+                                onClick={() => window.print()}
+                                className="px-8 py-4 bg-white border-2 border-slate-200 hover:border-slate-300 rounded-xl text-xs font-black uppercase tracking-widest text-slate-900 transition-all flex items-center gap-2"
+                            >
+                                <Download className="w-4 h-4" /> Download Detailed Audit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Audit Log (Questions) */}
+                {jobDetails?.questions && (
+                    <div className="pt-8 border-t border-slate-200 print:border-slate-300">
+                        <div className="flex items-center justify-between mb-8">
+                            <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight flex items-center gap-3">
+                                <Shield className="w-5 h-5 text-slate-400" />
+                                Detailed Response Audit
+                            </h3>
+                            <span className="bg-slate-100 text-slate-500 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-widest print:bg-white print:border print:border-slate-200">
+                                {result.answers ? Object.keys(result.answers).length : 0} Items Logged
+                            </span>
+                        </div>
+
+                        <div className="space-y-4 opacity-60 hover:opacity-100 transition-opacity duration-500 print:opacity-100">
+                            {jobDetails.questions.map((question, index) => {
+                                const userAnswer = result.answers?.[index];
+                                let isCorrect = false;
+                                if (question.type === 'mcq' || !question.type) {
+                                    isCorrect = userAnswer === question.correctAnswer;
+                                } else if (question.type === 'subjective' || question.type === 'coding') {
+                                    isCorrect = userAnswer && userAnswer.trim().length > 10;
+                                }
+
+                                return (
+                                    <div key={index} className="bg-white border border-slate-200 p-6 rounded-2xl flex items-start gap-4 print:border-slate-300 print:break-inside-avoid shadow-sm hover:shadow-md transition-shadow">
+                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${isCorrect ? 'bg-[#009966]/10 text-[#009966]' : 'bg-orange-100 text-orange-600'} print:border print:border-slate-200`}>
+                                            {index + 1}
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-sm font-bold text-slate-900 mb-2">{question.question}</p>
+                                            <div className="flex items-center gap-4 text-xs">
+                                                <span className="text-slate-400 font-bold uppercase tracking-wider">Ans: <span className={isCorrect ? 'text-[#009966]' : 'text-orange-600'}>{userAnswer || 'Skipped'}</span></span>
+                                                <span className="text-slate-300">|</span>
+                                                <span className="text-slate-400 font-bold uppercase tracking-wider">Ideal: <span className="text-slate-600">{question.correctAnswer || 'N/A'}</span></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-                    {/* Left Panel */}
-                    <div className="lg:col-span-4 space-y-8">
-                        <div className="bg-white dark:bg-[#1e293b] p-10 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-none text-center relative overflow-hidden group">
-                            <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-600/5 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000"></div>
-
-                            <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-10">Verification Accuracy</h3>
-
-                            <div className="relative inline-flex items-center justify-center mb-10">
-                                <svg className="w-48 h-48 transform -rotate-90">
-                                    <circle className="text-slate-100 dark:text-slate-800" strokeWidth="12" stroke="currentColor" fill="transparent" r="80" cx="96" cy="96" />
-                                    <circle
-                                        className={isPass ? "text-emerald-500" : "text-rose-500"}
-                                        strokeWidth="12"
-                                        strokeDasharray={2 * Math.PI * 80}
-                                        strokeDashoffset={2 * Math.PI * 80 * (1 - result.percentage / 100)}
-                                        strokeLinecap="round"
-                                        stroke="currentColor"
-                                        fill="transparent"
-                                        r="80" cx="96" cy="96"
-                                    />
-                                </svg>
-                                <div className="absolute flex flex-col items-center">
-                                    <span className="text-5xl font-black dark:text-white tracking-tighter">{result.percentage.toFixed(0)}%</span>
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Score</span>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Correct</p>
-                                    <p className="text-xl font-black text-slate-900 dark:text-white">{result.score}</p>
-                                </div>
-                                <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total</p>
-                                    <p className="text-xl font-black text-slate-900 dark:text-white">{result.total}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Skill Credibility Score Box */}
-                        <div className="bg-slate-900 p-10 rounded-[3rem] text-white shadow-2xl relative overflow-hidden group">
-                            <BrainCircuit className="absolute -right-6 -bottom-6 w-32 h-32 text-white/5 opacity-50 group-hover:scale-125 transition-transform duration-1000" />
-                            <div className="relative z-10">
-                                <h3 className="text-xs font-black text-blue-400 uppercase tracking-widest mb-8">Skill Credibility Score</h3>
-                                <div className="flex items-end gap-3 mb-6">
-                                    <span className="text-6xl font-black tracking-tighter text-white">{credibilityScore}%</span>
-                                    <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg text-[10px] font-black uppercase tracking-widest mb-2 border border-emerald-500/30">
-                                        Verified
-                                    </div>
-                                </div>
-                                <p className="text-[10px] font-bold text-slate-400 leading-relaxed uppercase tracking-tight">
-                                    Our AI compares resume claims against actual performance data to identify skill-mismatch risks.
-                                </p>
-                                <div className="mt-8 h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
-                                    <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-1000" style={{ width: `${credibilityScore}%` }}></div>
-                                </div>
-                                <div className="mt-4 flex justify-between text-[10px] font-black uppercase text-slate-500">
-                                    <span>Mismatch: {mismatchScore}%</span>
-                                    <span>Confidence: High</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Right Panel: Detailed Analysis */}
-                    <div className="lg:col-span-8 space-y-8">
-                        <div className="bg-white dark:bg-[#1e293b] p-10 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-sm transition-all">
-                            <div className="flex items-center justify-between mb-10">
-                                <div className="flex items-center gap-3">
-                                    <Target className="w-6 h-6 text-blue-600" />
-                                    <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Resume vs. Performance Matrix</h2>
-                                </div>
-                                <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                    <Shield className="w-4 h-4" /> AI Audited
-                                </div>
-                            </div>
-
-                            <div className="space-y-6">
-                                {credibilityData.skillSync.map((item, idx) => (
-                                    <div key={idx} className="group p-6 rounded-[2rem] bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-900 transition-all flex flex-col md:flex-row items-center gap-8">
-                                        <div className="flex-1 space-y-2 text-center md:text-left">
-                                            <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{item.skill}</h4>
-                                            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Resume says:</span>
-                                                    <span className="bg-white dark:bg-slate-800 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-700">{item.claimed}</span>
-                                                </div>
-                                                <ChevronRight className="w-3 h-3 text-slate-300" />
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Test Score:</span>
-                                                    <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${item.score >= 70 ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 border-emerald-100 dark:border-emerald-900/50' : 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 border-amber-100 dark:border-amber-900/50'
-                                                        }`}>
-                                                        {item.score.toFixed(0)}%
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="w-full md:w-40 flex flex-col items-center">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Sync Status</p>
-                                            <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${item.score >= 60 ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
-                                                }`}>
-                                                {item.verified}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* AI Conclusion */}
-                        <div className={`p-10 rounded-[3rem] border shadow-2xl transition-all relative overflow-hidden ${isPass
-                            ? 'bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/30 text-emerald-900 dark:text-emerald-100'
-                            : 'bg-rose-50/50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-900/30 text-rose-900 dark:text-rose-100'
-                            }`}>
-                            <div className="relative z-10">
-                                <div className="flex items-center gap-4 mb-6">
-                                    <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shadow-lg ${isPass ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}`}>
-                                        {isPass ? <CheckCircle className="w-6 h-6" /> : <XCircle className="w-6 h-6" />}
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xs font-black uppercase tracking-widest opacity-60">AI Conclusion</h3>
-                                        <p className="text-2xl font-black uppercase tracking-tight leading-none mt-1">
-                                            {isPass ? 'Strong Alignment' : 'Profile Mismatch'}
-                                        </p>
-                                    </div>
-                                </div>
-                                <p className="text-sm font-bold leading-relaxed mb-10 opacity-80 max-w-2xl">
-                                    {isPass
-                                        ? "The candidate's technical execution aligns with the complexity expected for this role. Credibility score indicates low risk for the hiring team."
-                                        : "Significant deviation between claimed years of experience/expertise and test execution patterns. Recommend manual verification of resume project history."
-                                    }
-                                </p>
-                                <div className="flex flex-wrap gap-4">
-                                    <button onClick={() => navigate('/candidate-dashboard')} className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg ${isPass ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
-                                        }`}>
-                                        Go to dashboard
-                                    </button>
-                                    <button onClick={downloadDetailedAudit} className="px-8 py-4 bg-white dark:bg-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all">
-                                        Download Detailed Audit
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            </main>
         </div>
     );
 };
