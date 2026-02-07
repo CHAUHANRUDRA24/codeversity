@@ -7,8 +7,8 @@ import { questionBank } from '../data/questionBank';
 
 const CreateJob = () => {
     const navigate = useNavigate();
-    const { user } = useAuth();
-    
+    const { user, logout } = useAuth();
+
     const [jobTitle, setJobTitle] = useState('Senior Frontend Engineer');
     const [experience, setExperience] = useState('Senior');
     const [jd, setJd] = useState('We are looking for a Senior Frontend Engineer to join our core product team. You will be responsible for building high-performance web applications using React and TypeScript.\n\nKey Responsibilities:\n- Develop new user-facing features.\n- Build reusable code and libraries for future use.\n- Ensure the technical feasibility of UI/UX designs.\n- Optimize application for maximum speed and scalability.\n\nRequirements:\n- Strong proficiency in JavaScript, including DOM manipulation and the JavaScript object model.\n- Thorough understanding of React.js and its core principles.\n- Experience with popular React.js workflows (such as Flux or Redux).\n- Familiarity with newer specifications of EcmaScript.');
@@ -40,6 +40,11 @@ const CreateJob = () => {
         setLoading(false);
     };
 
+    const handleLogout = async () => {
+        await logout();
+        navigate('/login');
+    };
+
     return (
         <div className="flex h-screen w-full overflow-hidden bg-[#f6f7f8] dark:bg-[#101822] text-slate-900 dark:text-slate-50 font-sans transition-colors duration-200">
             {/* Sidebar */}
@@ -58,12 +63,16 @@ const CreateJob = () => {
                             <span className="material-symbols-outlined text-[24px] fill-1">work</span>
                             <span className="text-sm font-medium">Create Job</span>
                         </button>
+                        <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-500 group w-full text-left mt-auto">
+                            <span className="material-symbols-outlined text-[24px] group-hover:text-red-600 transition-colors">logout</span>
+                            <span className="text-sm font-medium">Logout</span>
+                        </button>
                     </nav>
                 </div>
                 <div className="p-4 border-t border-slate-100 dark:border-slate-800">
                     <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">
-                        <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold border border-white">
-                             {user?.email?.[0].toUpperCase()}
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md ring-2 ring-white dark:ring-slate-800">
+                            {user?.email?.[0]?.toUpperCase() || 'U'}
                         </div>
                         <div className="flex flex-col">
                             <p className="text-sm font-semibold text-slate-900 dark:text-white">{user?.email}</p>
@@ -95,7 +104,7 @@ const CreateJob = () => {
                                     <p className="text-slate-500 dark:text-slate-400 mt-1">Define the role details and we'll attach a rigorous assessment.</p>
                                 </div>
                                 <div className="flex gap-3">
-                                    <button 
+                                    <button
                                         onClick={handleCreateJob}
                                         disabled={loading}
                                         className="px-6 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-all shadow-sm shadow-blue-200 dark:shadow-none flex items-center gap-2 border-none cursor-pointer disabled:opacity-50"
