@@ -301,6 +301,12 @@ export const gradeEntireAssessment = async (job, userAnswers, context = {}) => {
         
         Job Description Context: ${job.description}
         
+        **Recruiter Priorities (Skill Constraints):**
+        ${job.skillPriorities ? JSON.stringify(job.skillPriorities) : "No specific priorities set. Treat all core skills as equally important."}
+        
+        **Time Constraints:**
+        ${job.timeLimit ? `Allowed Time: ${job.timeLimit} minutes.` : "No strict time limit enforced."}
+        
         Assessment Data (Questions and User Answers):
         ${JSON.stringify(assessmentData)}
 
@@ -309,26 +315,33 @@ export const gradeEntireAssessment = async (job, userAnswers, context = {}) => {
         (Includes tab switches, copy-paste attempts, etc.)
 
         Instructions:
-        1. For MCQs: Determine the strictly correct answer from the options. Compare with user's answer.
-        2. For Subjective: Evaluate the quality, depth, and correctness of the user's response.
-           - FLAGGING: If the text changes style abruptly or looks like an AI-generated essay (too perfect/generic), flag it.
-        3. For Coding: 
-           - Check if the logic is correct and solves the problem.
-           - PLAGIARISM CHECK: Analyze if the code is a "textbook" solution found online. Real candidates often have minor quirks or comments. 
-           - ANOMALY CHECK: If the code is perfect but there are high paste violations, significantly lower the credibility score.
-           - KEYBOARD check: If the code is complex but typed perfectly without typical human variations (if visible), or if it matches LeetCode solutions exactly, flag it.
+        1. **Grading Logic**:
+           - **MCQs**: Strictly check correctness.
+           - **Subjective**: Evaluate depth, clarity, and technical accuracy.
+           - **Coding**: Check logic, edge cases, and efficiency.
+        
+        2. **Priority Weighting (CRITICAL)**:
+           - If a question relates to a "Critical" skill (from priorities), its score impact is doubled (or significantly higher).
+           - If a "High" priority skill answer is weak, penalize more heavily.
+           - "Low" priority skills should have less impact on the final decision.
+           
+        3. **Plagiarism & Anomaly Detection**:
+           - **Cheating**: If the text changes style abruptly or looks like an AI-generated essay (too perfect/generic), flag it.
+           - **Code**: Analyze if the code is a "textbook" solution found online. Real candidates often have minor quirks or comments.
+           - **Time Context**: If answers are extremely short but correct for "Critical" complex questions, OR if code is perfect but typed in seconds (if visible), flag it.
+           - **Violations**: If high tab-switch count + perfect answer = Low Credibility.
 
         Output a JSON object with this EXACT structure:
         {
-            "totalScore": (sum of individual scores),
-            "maxScore": (total possible points, assume 10 points per question),
+            "totalScore": (sum of weighted scores),
+            "maxScore": (total possible weighted points),
             "percentage": (0-100),
             "credibilityScore": (0-100, where 100 is clean, <50 is likely cheated),
-            "cheatingAnalysis": "Brief analysis of potential cheating based on violations and answer patterns.",
-            "feedback": "Overall summary of the candidate's performance in 2-3 sentences.",
+            "cheatingAnalysis": "Brief analysis of potential cheating based on violations, time, and answer patterns.",
+            "feedback": "Overall summary of the candidate's performance, specifically mentioning how they performed on Critical/High priority skills.",
             "skillsAnalysis": {
-                "Skill Name 1": { "score": 8, "total": 10 },
-                "Skill Name 2": { "score": 15, "total": 20 }
+                "Skill Name 1": { "score": 8, "total": 10, "priority": "Critical" },
+                "Skill Name 2": { "score": 15, "total": 20, "priority": "Medium" }
             },
             "questions": [
                 {
@@ -337,8 +350,9 @@ export const gradeEntireAssessment = async (job, userAnswers, context = {}) => {
                     "userAnswer": "user's full answer",
                     "correctAnswer": "The correct option or a model answer",
                     "isCorrect": boolean,
-                    "score": (0-10),
-                    "feedback": "Brief explanation of why it is correct or wrong",
+                    "score": (0-10 base score),
+                    "weightedScore": (score after priority adjustment),
+                    "feedback": "Brief explanation. Mention if priority weighting affected this.",
                     "plagiarismFlag": boolean (true if suspicious)
                 }
             ]
