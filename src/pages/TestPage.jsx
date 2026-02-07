@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
-import { CheckCircle, Clock, AlertTriangle, Play, Sparkles, Shield, HelpCircle, ChevronRight } from 'lucide-react';
+import { gradeAssessment } from '../services/gradingService';
+import { CheckCircle, Clock, AlertTriangle, Play, Sparkles, Shield, HelpCircle, ChevronRight, Loader } from 'lucide-react';
 
 const TestPage = () => {
     const { jobId } = useParams();
@@ -134,10 +135,20 @@ const TestPage = () => {
                 percentage: percentage,
                 submittedAt: new Date().toISOString(),
                 answers: answers, // Save full answers for review
-                tabSwitchViolation: isViolation || tabSwitchViolation // Flag if cheating detected
+                tabSwitchViolation: isViolation || tabSwitchViolation, // Flag if cheating detected
+                // Save detailed AI analysis
+                aiEvaluation: gradingResults
             });
 
-            navigate(`/result/${jobId}`, { state: { score, total, percentage, tabSwitchViolation: isViolation || tabSwitchViolation } });
+            navigate(`/result/${jobId}`, {
+                state: {
+                    score,
+                    total,
+                    percentage,
+                    tabSwitchViolation: isViolation || tabSwitchViolation,
+                    aiEvaluation: gradingResults
+                }
+            });
         } catch (error) {
             console.error("Error submitting test:", error);
             alert("Failed to submit test.");
@@ -180,7 +191,11 @@ const TestPage = () => {
                             disabled={submitting}
                             className="bg-slate-900 hover:bg-black text-white px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all disabled:opacity-50"
                         >
-                            {submitting ? 'Submitting...' : 'Finish Test'}
+                            {submitting ? (
+                                <span className="flex items-center gap-2">
+                                    <Loader className="animate-spin w-4 h-4" /> Analyzing with AI...
+                                </span>
+                            ) : 'Finish Test'}
                         </button>
                     </div>
                 </div>

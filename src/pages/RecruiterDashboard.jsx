@@ -6,7 +6,7 @@ import { db } from '../firebase';
 import {
     Briefcase, User, Search, Plus, Filter,
     Download, MoreHorizontal, LogOut, Loader,
-    Award, Shield, BrainCircuit, Sparkles, TrendingUp
+    Award, Shield, BrainCircuit, Sparkles, TrendingUp, AlertTriangle
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { calculateHiringConfidence, getConfidenceClasses } from '../utils/hiringConfidence';
@@ -242,7 +242,18 @@ const RecruiterDashboard = () => {
                                                         </td>
                                                         <td className="px-8 py-6">
                                                             <div>
-                                                                <div className="font-black text-slate-900 dark:text-white uppercase tracking-tight truncate max-w-[200px]">{candidate.user?.email}</div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="font-black text-slate-900 dark:text-white uppercase tracking-tight truncate max-w-[200px]">{candidate.user?.email}</div>
+                                                                    {candidate.tabSwitchViolation && (
+                                                                        <div className="group/tooltip relative">
+                                                                            <AlertTriangle className="w-4 h-4 text-amber-500" />
+                                                                            <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-3 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                                                                                Tab Switch Detected
+                                                                                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900"></div>
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
                                                                 <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">Applied {new Date(candidate.submittedAt).toLocaleDateString()}</div>
                                                             </div>
                                                         </td>
@@ -263,7 +274,7 @@ const RecruiterDashboard = () => {
                                                         </td>
                                                         <td className="px-8 py-6">
                                                             {(() => {
-                                                                const confidence = calculateHiringConfidence(candidate.percentage, candidate.aiEvaluation?.credibilityScore || fakeCredibility);
+                                                                const confidence = calculateHiringConfidence(candidate.percentage, null, candidate.aiEvaluation?.credibilityScore || fakeCredibility);
                                                                 const classes = getConfidenceClasses(confidence.level);
                                                                 return (
                                                                     <div className="flex items-center gap-2">
@@ -277,12 +288,29 @@ const RecruiterDashboard = () => {
                                                             })()}
                                                         </td>
                                                         <td className="px-8 py-6">
-                                                            <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border ${candidate.percentage >= 80 ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 border-blue-100 dark:border-blue-900/50' :
-                                                                candidate.percentage >= 60 ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-100 dark:border-emerald-900/50' :
-                                                                    'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-100 dark:border-slate-700'
-                                                                }`}>
-                                                                {candidate.percentage >= 80 ? 'Exceptional' : candidate.percentage >= 60 ? 'Verified' : 'Review Required'}
-                                                            </span>
+                                                            <div className="flex flex-col gap-1">
+                                                                <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border ${candidate.tabSwitchViolation 
+                                                                    ? 'bg-red-50 dark:bg-red-900/20 text-red-600 border-red-100 dark:border-red-900/50' 
+                                                                    : candidate.percentage >= 80 
+                                                                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 border-blue-100 dark:border-blue-900/50' 
+                                                                        : candidate.percentage >= 60 
+                                                                            ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-100 dark:border-emerald-900/50' 
+                                                                            : 'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-100 dark:border-slate-700'
+                                                                    }`}>
+                                                                    {candidate.tabSwitchViolation 
+                                                                        ? <><AlertTriangle className="w-3 h-3" /> Violation</> 
+                                                                        : candidate.percentage >= 80 
+                                                                            ? 'Exceptional' 
+                                                                            : candidate.percentage >= 60 
+                                                                                ? 'Verified' 
+                                                                                : 'Review Required'}
+                                                                </span>
+                                                                {(candidate.aiEvaluation?.credibilityScore < 60) && (
+                                                                    <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-500 uppercase tracking-wide">
+                                                                         <AlertTriangle className="w-3 h-3" /> Low Trust / Mismatch
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 );
