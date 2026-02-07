@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
-import { CheckCircle, Clock, AlertTriangle, Play, Sparkles, Shield, HelpCircle, ChevronRight } from 'lucide-react';
+import { gradeAssessment } from '../services/gradingService';
+import { CheckCircle, Clock, AlertTriangle, Play, Sparkles, Shield, HelpCircle, ChevronRight, Loader } from 'lucide-react';
 
 const TestPage = () => {
     const { jobId } = useParams();
@@ -16,6 +17,7 @@ const TestPage = () => {
     const [submitting, setSubmitting] = useState(false);
     const [timeLeft, setTimeLeft] = useState(1800); // 30 minutes
     const [activeQuestion, setActiveQuestion] = useState(0);
+    const [tabSwitchViolation, setTabSwitchViolation] = useState(false);
 
     useEffect(() => {
         const fetchJob = async () => {
@@ -29,7 +31,7 @@ const TestPage = () => {
                 if (data.estimatedTime) setTimeLeft(data.estimatedTime * 60);
             } else {
                 console.error("Job not found");
-                navigate('/candidate-dashboard'); 
+                navigate('/candidate-dashboard');
             }
             setLoading(false);
         };
@@ -53,6 +55,37 @@ const TestPage = () => {
         }
     }, [loading, job]);
 
+    // Tab Switch Detection - Anti-Cheating Measure
+    useEffect(() => {
+        if (!loading && job && !submitting) {
+            const handleVisibilityChange = () => {
+                if (document.hidden) {
+                    // User switched tabs - Show detailed alert and auto submit
+                    alert(
+                        '🚨 ANTI-CHEATING VIOLATION DETECTED! 🚨\n\n' +
+                        '⚠️ You have switched tabs or windows during the assessment.\n\n' +
+                        'ACTION TAKEN:\n' +
+                        '• Your test is being automatically submitted\n' +
+                        '• Your current answers have been recorded\n' +
+                        '• This incident will be flagged in your report\n\n' +
+                        'REASON: Tab switching is prohibited to maintain assessment integrity.\n\n' +
+                        'Click OK to proceed to your results.'
+                    );
+                    setTabSwitchViolation(true);
+                    handleSubmit(true); // Pass violation flag
+                }
+            };
+
+            // Add event listener for visibility change
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+
+            // Cleanup
+            return () => {
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+            };
+        }
+    }, [loading, job, submitting]);
+
     const handleAnswerChange = (questionIndex, value) => {
         const qId = job.questions[questionIndex].id || questionIndex;
         setAnswers(prev => ({
@@ -67,7 +100,7 @@ const TestPage = () => {
         return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
     };
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (isViolation = false) => {
         if (!job || submitting) return;
         setSubmitting(true);
 
@@ -76,7 +109,7 @@ const TestPage = () => {
 
         job.questions.forEach((q, idx) => {
             const userAnswer = answers[idx]; // Access by index
-            
+
             if (q.type === 'mcq' || !q.type) {
                 // MCQ grading
                 if (userAnswer === q.correctAnswer) {
@@ -85,7 +118,7 @@ const TestPage = () => {
             } else if (q.type === 'subjective' || q.type === 'coding') {
                 // "AI" Grading Simulation: Full points for non-empty meaningful answer (>10 chars)
                 if (userAnswer && userAnswer.trim().length > 10) {
-                    score++; 
+                    score++;
                 }
             }
         });
@@ -101,10 +134,21 @@ const TestPage = () => {
                 total: total,
                 percentage: percentage,
                 submittedAt: new Date().toISOString(),
-                answers: answers // Save full answers for review
+                answers: answers, // Save full answers for review
+                tabSwitchViolation: isViolation || tabSwitchViolation, // Flag if cheating detected
+                // Save detailed AI analysis
+                aiEvaluation: gradingResults
             });
 
-            navigate(`/result/${jobId}`, { state: { score, total, percentage } });
+            navigate(`/result/${jobId}`, {
+                state: {
+                    score,
+                    total,
+                    percentage,
+                    tabSwitchViolation: isViolation || tabSwitchViolation,
+                    aiEvaluation: gradingResults
+                }
+            });
         } catch (error) {
             console.error("Error submitting test:", error);
             alert("Failed to submit test.");
@@ -117,7 +161,7 @@ const TestPage = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
     );
-    
+
     if (!job) return <div className="p-8 text-center">Job not found.</div>;
 
     const progress = (Object.keys(answers).length / job.questions.length) * 100;
@@ -138,17 +182,21 @@ const TestPage = () => {
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
-                         <div className={`flex items-center gap-2 px-4 py-2 rounded-full font-mono font-bold text-sm shadow-sm border ${timeLeft < 300 ? 'bg-red-50 text-red-600 border-red-100 animate-pulse' : 'bg-white text-slate-600 border-slate-200'}`}>
+                        <div className={`flex items-center gap-2 px-4 py-2 rounded-full font-mono font-bold text-sm shadow-sm border ${timeLeft < 300 ? 'bg-red-50 text-red-600 border-red-100 animate-pulse' : 'bg-white text-slate-600 border-slate-200'}`}>
                             <Clock size={16} />
                             {formatTime(timeLeft)}
-                         </div>
-                         <button 
-                            onClick={handleSubmit} 
+                        </div>
+                        <button
+                            onClick={handleSubmit}
                             disabled={submitting}
                             className="bg-slate-900 hover:bg-black text-white px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all disabled:opacity-50"
-                         >
-                            {submitting ? 'Submitting...' : 'Finish Test'}
-                         </button>
+                        >
+                            {submitting ? (
+                                <span className="flex items-center gap-2">
+                                    <Loader className="animate-spin w-4 h-4" /> Analyzing with AI...
+                                </span>
+                            ) : 'Finish Test'}
+                        </button>
                     </div>
                 </div>
                 {/* Progress Bar */}
@@ -156,6 +204,16 @@ const TestPage = () => {
                     <div className="h-full bg-indigo-600 transition-all duration-500 ease-out" style={{ width: `${progress}%` }}></div>
                 </div>
             </header>
+
+            {/* Anti-Cheating Warning Banner */}
+            <div className="bg-amber-50 border-y border-amber-200">
+                <div className="max-w-7xl mx-auto px-6 py-3 flex items-center gap-3">
+                    <Shield className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                    <p className="text-xs font-bold text-amber-800">
+                        <span className="font-black uppercase tracking-wider">⚠ Anti-Cheating System Active:</span> Switching tabs or windows during this assessment will result in automatic submission. Please stay on this page until you finish.
+                    </p>
+                </div>
+            </div>
 
             <main className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-12 gap-10">
                 {/* Left: Navigation Panel */}
@@ -168,10 +226,10 @@ const TestPage = () => {
                                     key={i}
                                     onClick={() => setActiveQuestion(i)}
                                     className={`h-12 w-full rounded-xl flex items-center justify-center font-black text-xs transition-all border ${activeQuestion === i
-                                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-500/30 ring-2 ring-indigo-500/20'
-                                            : answers[i]
-                                                ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                                : 'bg-slate-50 text-slate-400 border-slate-100 hover:border-indigo-200'
+                                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-500/30 ring-2 ring-indigo-500/20'
+                                        : answers[i]
+                                            ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                            : 'bg-slate-50 text-slate-400 border-slate-100 hover:border-indigo-200'
                                         }`}
                                 >
                                     {i + 1}
@@ -221,7 +279,7 @@ const TestPage = () => {
                             <h2 className="text-xl font-bold text-slate-900 leading-tight mb-8">
                                 {currentQ.type === 'coding' ? currentQ.title : currentQ.question}
                             </h2>
-                            
+
                             {currentQ.type === 'coding' && (
                                 <p className="text-sm text-slate-600 mb-6">{currentQ.description}</p>
                             )}
@@ -235,14 +293,14 @@ const TestPage = () => {
                                                 key={idx}
                                                 onClick={() => handleAnswerChange(activeQuestion, option)}
                                                 className={`group relative p-4 rounded-xl border-2 text-left transition-all active:scale-[0.99] ${answers[activeQuestion] === option
-                                                        ? 'bg-indigo-50 border-indigo-600 text-indigo-900'
-                                                        : 'bg-white border-slate-100 hover:border-indigo-300 hover:bg-slate-50'
+                                                    ? 'bg-indigo-50 border-indigo-600 text-indigo-900'
+                                                    : 'bg-white border-slate-100 hover:border-indigo-300 hover:bg-slate-50'
                                                     }`}
                                             >
                                                 <div className="flex items-center gap-4">
                                                     <div className={`h-8 w-8 rounded-lg flex items-center justify-center font-bold text-xs transition-all ${answers[activeQuestion] === option
-                                                            ? 'bg-indigo-600 text-white'
-                                                            : 'bg-slate-100 text-slate-400 group-hover:bg-white group-hover:text-indigo-600'
+                                                        ? 'bg-indigo-600 text-white'
+                                                        : 'bg-slate-100 text-slate-400 group-hover:bg-white group-hover:text-indigo-600'
                                                         }`}>
                                                         {String.fromCharCode(65 + idx)}
                                                     </div>
