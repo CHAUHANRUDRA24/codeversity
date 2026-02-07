@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db, auth } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { generateQuestions } from '../utils/generateQuestions';
+import { generateAssessmentFromJD } from '../services/aiService';
 import { useAuth } from '../context/AuthContext';
-import { Sparkles, CheckCircle, BrainCircuit, Code, FileText, CheckSquare, X } from 'lucide-react';
+import { Sparkles, CheckCircle, BrainCircuit, Code, FileText, CheckSquare, X, AlertOctagon } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 
 const CreateJob = () => {
@@ -20,9 +20,10 @@ const CreateJob = () => {
     const [generatedSections, setGeneratedSections] = useState(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [isPublishing, setIsPublishing] = useState(false);
+    const [error, setError] = useState(null);
 
     // AI Handler
-    const handleGenerateValues = () => {
+    const handleGenerateValues = async () => {
         if (!jobTitle || !jobDescription) {
             alert("Please fill in Job Title and Description first.");
             return;
@@ -30,13 +31,17 @@ const CreateJob = () => {
 
         setIsGenerating(true);
         setGeneratedSections(null);
+        setError(null);
 
-        // Simulate AI thinking time for UX
-        setTimeout(() => {
-            const sections = generateQuestions(jobDescription, jobTitle);
+        try {
+            const sections = await generateAssessmentFromJD(jobTitle, jobDescription, experienceLevel);
             setGeneratedSections(sections);
+        } catch (err) {
+            console.error(err);
+            setError("Failed to generate assessment. Please check your API Key or try again.");
+        } finally {
             setIsGenerating(false);
-        }, 1500);
+        }
     };
 
     const handlePublish = async () => {
@@ -182,9 +187,19 @@ const CreateJob = () => {
                                 <div className="h-full min-h-[400px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] flex flex-col items-center justify-center p-8 text-center">
                                     <div className="w-12 h-12 border-4 border-blue-100 dark:border-blue-900 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin mb-4"></div>
                                     <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Generating Questions</h3>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">Scanning keywords and formatting schema...</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">Analyzing JD context and designing challenges...</p>
                                     <div className="flex gap-2 mt-4 text-xs text-blue-600 dark:text-blue-400 font-black uppercase tracking-widest">
-                                        <span>MCQ</span> • <span>Subjective</span> • <span>Coding</span>
+                                        <span>Gemini AI</span> • <span>Custom Schema</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {error && (
+                                <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900 rounded-xl flex items-center gap-3">
+                                    <AlertOctagon className="w-5 h-5 text-red-600 dark:text-red-400" />
+                                    <div>
+                                        <h4 className="text-sm font-black text-red-900 dark:text-red-400 uppercase tracking-tight">AI Generation Failed</h4>
+                                        <p className="text-xs text-red-600 dark:text-red-300 font-medium">{error}</p>
                                     </div>
                                 </div>
                             )}

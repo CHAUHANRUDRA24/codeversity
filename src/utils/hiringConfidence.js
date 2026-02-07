@@ -7,20 +7,21 @@
  * @param {number} consistencyScore - Consistency/credibility score (0-100)
  * @returns {object} { score, level, color, label }
  */
-export const calculateHiringConfidence = (testScore, resumeMatch = null, consistencyScore = null) => {
+// @param {number} aiTrustScore - AI-generated credibility/trust score (0-100)
+export const calculateHiringConfidence = (testScore, resumeMatch = null, aiTrustScore = null) => {
     // If resume match not provided, use test score as proxy
     const effectiveResumeMatch = resumeMatch !== null ? resumeMatch : testScore;
 
-    // If consistency not provided, calculate based on variance
-    const effectiveConsistency = consistencyScore !== null
-        ? consistencyScore
+    // If consistency/trust not provided, calculate based on variance
+    const effectiveConsistency = aiTrustScore !== null
+        ? aiTrustScore
         : Math.max(0, 100 - Math.abs(testScore - effectiveResumeMatch));
 
     // Calculate weighted confidence index
     const confidenceIndex = (
-        (testScore * 0.6) +
-        (effectiveResumeMatch * 0.3) +
-        (effectiveConsistency * 0.1)
+        (testScore * 0.5) +
+        (effectiveResumeMatch * 0.2) +
+        (effectiveConsistency * 0.3)
     );
 
     // Determine confidence level

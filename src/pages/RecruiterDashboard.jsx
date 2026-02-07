@@ -6,9 +6,7 @@ import { db } from '../firebase';
 import {
     Briefcase, User, Search, Plus, Filter,
     Download, MoreHorizontal, LogOut, Loader,
-    Award, Shield, BrainCircuit, Sparkles, TrendingUp,
-    X, CheckCircle, XCircle, Calendar, Clock, Trophy,
-    AlertTriangle, FileText
+    Award, Shield, BrainCircuit, Sparkles, TrendingUp, AlertTriangle
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { calculateHiringConfidence, getConfidenceClasses } from '../utils/hiringConfidence';
@@ -24,7 +22,6 @@ const RecruiterDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [loadingCandidates, setLoadingCandidates] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(true);
-    const [selectedCandidate, setSelectedCandidate] = useState(null);
 
     // Fetch Jobs on Mount
     useEffect(() => {
@@ -235,11 +232,7 @@ const RecruiterDashboard = () => {
                                             candidates.map((candidate, index) => {
                                                 const fakeCredibility = Math.min(100, Math.max(0, candidate.percentage + (Math.random() * 20 - 10))).toFixed(0);
                                                 return (
-                                                    <tr
-                                                        key={candidate.id}
-                                                        onClick={() => setSelectedCandidate(candidate)}
-                                                        className="group hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-all cursor-pointer"
-                                                    >
+                                                    <tr key={candidate.id} className="group hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-all">
                                                         <td className="px-8 py-6">
                                                             <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs border-2 ${index === 0 ? 'bg-blue-600 text-white border-blue-600 shadow-xl shadow-blue-500/20' :
                                                                 'bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-100 dark:border-slate-700'
@@ -249,7 +242,18 @@ const RecruiterDashboard = () => {
                                                         </td>
                                                         <td className="px-8 py-6">
                                                             <div>
-                                                                <div className="font-black text-slate-900 dark:text-white uppercase tracking-tight truncate max-w-[200px]">{candidate.user?.email}</div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="font-black text-slate-900 dark:text-white uppercase tracking-tight truncate max-w-[200px]">{candidate.user?.email}</div>
+                                                                    {candidate.tabSwitchViolation && (
+                                                                        <div className="group/tooltip relative">
+                                                                            <AlertTriangle className="w-4 h-4 text-amber-500" />
+                                                                            <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-3 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                                                                                Tab Switch Detected
+                                                                                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900"></div>
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
                                                                 <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">Applied {new Date(candidate.submittedAt).toLocaleDateString()}</div>
                                                             </div>
                                                         </td>
@@ -270,7 +274,7 @@ const RecruiterDashboard = () => {
                                                         </td>
                                                         <td className="px-8 py-6">
                                                             {(() => {
-                                                                const confidence = calculateHiringConfidence(candidate.percentage, candidate.aiEvaluation?.credibilityScore || fakeCredibility);
+                                                                const confidence = calculateHiringConfidence(candidate.percentage, null, candidate.aiEvaluation?.credibilityScore || fakeCredibility);
                                                                 const classes = getConfidenceClasses(confidence.level);
                                                                 return (
                                                                     <div className="flex items-center gap-2">
@@ -284,12 +288,29 @@ const RecruiterDashboard = () => {
                                                             })()}
                                                         </td>
                                                         <td className="px-8 py-6">
-                                                            <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border ${candidate.percentage >= 80 ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 border-blue-100 dark:border-blue-900/50' :
-                                                                candidate.percentage >= 60 ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-100 dark:border-emerald-900/50' :
-                                                                    'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-100 dark:border-slate-700'
-                                                                }`}>
-                                                                {candidate.percentage >= 80 ? 'Exceptional' : candidate.percentage >= 60 ? 'Verified' : 'Review Required'}
-                                                            </span>
+                                                            <div className="flex flex-col gap-1">
+                                                                <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border ${candidate.tabSwitchViolation 
+                                                                    ? 'bg-red-50 dark:bg-red-900/20 text-red-600 border-red-100 dark:border-red-900/50' 
+                                                                    : candidate.percentage >= 80 
+                                                                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 border-blue-100 dark:border-blue-900/50' 
+                                                                        : candidate.percentage >= 60 
+                                                                            ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-100 dark:border-emerald-900/50' 
+                                                                            : 'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-100 dark:border-slate-700'
+                                                                    }`}>
+                                                                    {candidate.tabSwitchViolation 
+                                                                        ? <><AlertTriangle className="w-3 h-3" /> Violation</> 
+                                                                        : candidate.percentage >= 80 
+                                                                            ? 'Exceptional' 
+                                                                            : candidate.percentage >= 60 
+                                                                                ? 'Verified' 
+                                                                                : 'Review Required'}
+                                                                </span>
+                                                                {(candidate.aiEvaluation?.credibilityScore < 60) && (
+                                                                    <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-500 uppercase tracking-wide">
+                                                                         <AlertTriangle className="w-3 h-3" /> Low Trust / Mismatch
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 );
@@ -302,210 +323,6 @@ const RecruiterDashboard = () => {
                     )}
                 </div>
             </main>
-
-            {/* Candidate Detail Modal */}
-            {selectedCandidate && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in" onClick={() => setSelectedCandidate(null)}>
-                    <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom-8" onClick={(e) => e.stopPropagation()}>
-
-                        {/* Header */}
-                        <div className="bg-white dark:bg-slate-800 p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-start sticky top-0 z-10">
-                            <div>
-                                <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-1">Candidate Review</h2>
-                                <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
-                                    {selectedCandidate.user?.email || 'Candidate'} <span className="mx-2">·</span> {selectedCandidate.jobTitle}
-                                </p>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                {(selectedCandidate.percentage < 40 || selectedCandidate.tabSwitchViolation) && (
-                                    <div className="flex items-center gap-2 px-3 py-1.5 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-lg">
-                                        <div className="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></div>
-                                        <span className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest">High Risk Profile</span>
-                                    </div>
-                                )}
-                                <button
-                                    onClick={() => setSelectedCandidate(null)}
-                                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
-                                >
-                                    <X className="w-5 h-5 text-slate-500" />
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Scrollable Content */}
-                        <div className="flex-1 overflow-y-auto p-8 bg-slate-50 dark:bg-slate-950">
-
-                            {/* Stats Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                                {/* Total Score */}
-                                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">Total Score</p>
-                                    <div className="flex items-baseline gap-2">
-                                        <span className="text-3xl font-black text-slate-900 dark:text-white">{selectedCandidate.score}/{selectedCandidate.total}</span>
-                                        <span className={`text-sm font-black ${selectedCandidate.percentage >= 60 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                            ({selectedCandidate.percentage.toFixed(0)}%)
-                                        </span>
-                                    </div>
-                                </div>
-
-                                {/* Time Taken */}
-                                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">Time Taken</p>
-                                    <div className="flex items-center gap-2">
-                                        <Clock className="w-5 h-5 text-blue-500" />
-                                        <span className="text-2xl font-black text-slate-900 dark:text-white">
-                                            {selectedCandidate.timeTaken ? `${Math.floor(selectedCandidate.timeTaken / 60)}m ${selectedCandidate.timeTaken % 60}s` : 'N/A'}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                {/* Tab Switches */}
-                                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">Tab Switches</p>
-                                    <div className="flex items-center gap-2">
-                                        <Shield className={`w-5 h-5 ${selectedCandidate.tabSwitchViolation ? 'text-rose-500' : 'text-emerald-500'}`} />
-                                        <span className={`text-2xl font-black ${selectedCandidate.tabSwitchViolation ? 'text-rose-500' : 'text-slate-900 dark:text-white'}`}>
-                                            {selectedCandidate.tabSwitchViolation ? 'Yes' : 'None'}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                {/* Resume Status */}
-                                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-center">
-                                    <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
-                                        <FileText className="w-5 h-5" />
-                                        <span className="text-sm font-bold">No Resume</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Integrity Flags */}
-                            {(selectedCandidate.percentage < 40 || selectedCandidate.tabSwitchViolation) && (
-                                <div className="bg-rose-50 dark:bg-rose-900/10 border-2 border-rose-100 dark:border-rose-900/30 rounded-2xl p-6 mb-8">
-                                    <div className="flex items-start gap-4">
-                                        <AlertTriangle className="w-6 h-6 text-rose-500 flex-shrink-0 mt-1" />
-                                        <div>
-                                            <h3 className="text-sm font-black text-rose-700 dark:text-rose-300 uppercase tracking-wide mb-2">Integrity Flags Detected</h3>
-                                            <p className="text-sm font-medium text-rose-600 dark:text-rose-400 mb-4">
-                                                Our proctoring system flagged this submission for manual review due to the following anomalies:
-                                            </p>
-                                            <div className="flex flex-wrap gap-3">
-                                                {selectedCandidate.percentage < 40 && (
-                                                    <span className="px-3 py-1.5 bg-rose-100 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 rounded-lg text-[10px] font-black text-rose-700 dark:text-rose-300 uppercase tracking-widest">
-                                                        Low Performance Score
-                                                    </span>
-                                                )}
-                                                {selectedCandidate.tabSwitchViolation && (
-                                                    <span className="px-3 py-1.5 bg-rose-100 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 rounded-lg text-[10px] font-black text-rose-700 dark:text-rose-300 uppercase tracking-widest">
-                                                        Tab Switching Detected
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Response Analysis */}
-                            {selectedJob?.questions && (
-                                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                                    <div className="p-8 border-b border-slate-100 dark:border-slate-800">
-                                        <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Response Analysis</h3>
-                                    </div>
-                                    <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                                        {selectedJob.questions.map((question, index) => {
-                                            const userAnswer = selectedCandidate.answers?.[index];
-                                            let isCorrect = false;
-
-                                            // Check if answer is correct
-                                            if (question.type === 'mcq' || !question.type) {
-                                                isCorrect = userAnswer === question.correctAnswer;
-                                            } else if (question.type === 'subjective' || question.type === 'coding') {
-                                                isCorrect = userAnswer && userAnswer.trim().length > 10;
-                                            }
-
-                                            return (
-                                                <div key={index} className="p-8 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                                    <div className="flex items-start gap-4 mb-4">
-                                                        <div className="flex-shrink-0 w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center font-black text-xs text-slate-500 dark:text-slate-400">
-                                                            {index + 1}
-                                                        </div>
-                                                        <div className="flex-1">
-                                                            <div className="flex items-center gap-3 mb-2">
-                                                                <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                                                                    {question.type || 'MCQ'}
-                                                                </span>
-                                                                {isCorrect ? (
-                                                                    <CheckCircle className="w-4 h-4 text-emerald-500" />
-                                                                ) : (
-                                                                    <XCircle className="w-4 h-4 text-rose-500" />
-                                                                )}
-                                                            </div>
-                                                            <p className="text-sm font-bold text-slate-900 dark:text-white mb-4 leading-relaxed">{question.question}</p>
-
-                                                            {/* MCQ Options */}
-                                                            {(question.type === 'mcq' || !question.type) && question.options && (
-                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                                    <div>
-                                                                        <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">
-                                                                            Candidate Evaluation
-                                                                        </p>
-                                                                        <div className={`p-4 rounded-xl border-2 ${isCorrect
-                                                                            ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
-                                                                            : 'bg-rose-50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-800 text-rose-700 dark:text-rose-300'
-                                                                            }`}>
-                                                                            <p className="text-sm font-bold">{userAnswer || 'No answer'}</p>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div>
-                                                                        <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">
-                                                                            Ideal Solution
-                                                                        </p>
-                                                                        <div className="p-4 rounded-xl border-2 bg-emerald-50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300">
-                                                                            <p className="text-sm font-bold">{question.correctAnswer}</p>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-
-                                                            {/* Subjective/Coding Answer */}
-                                                            {(question.type === 'subjective' || question.type === 'coding') && (
-                                                                <div>
-                                                                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">
-                                                                        Candidate's Answer:
-                                                                    </p>
-                                                                    <div className={`p-4 rounded-xl border-2 ${question.type === 'coding'
-                                                                        ? 'bg-slate-900 dark:bg-slate-950 border-slate-700 font-mono text-sm text-emerald-400'
-                                                                        : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white'
-                                                                        }`}>
-                                                                        <pre className="whitespace-pre-wrap font-inherit text-xs">
-                                                                            {userAnswer || <span className="text-slate-400 italic">No answer provided</span>}
-                                                                        </pre>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Footer Actions */}
-                        <div className="p-6 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-4">
-                            <button
-                                onClick={() => setSelectedCandidate(null)}
-                                className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-colors shadow-lg shadow-blue-500/20"
-                            >
-                                Done Reviewing
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
