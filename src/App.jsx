@@ -11,6 +11,7 @@ import CandidateDashboard from './pages/CandidateDashboard';
 import CreateJob from './pages/CreateJob';
 import TestPage from './pages/TestPage';
 import ResultPage from './pages/ResultPage';
+import AdminSetup from './pages/AdminSetup';
 
 function App() {
   return (
@@ -50,6 +51,10 @@ function App() {
               <ResultPage />
             </ProtectedRoute>
           } />
+
+
+           {/* Admin Setup Route */}
+           <Route path="/account-create" element={<AdminSetup />} />
 
            {/* Redirects */}
            <Route path="/dashboard" element={<Navigate to="/login" replace />} />
