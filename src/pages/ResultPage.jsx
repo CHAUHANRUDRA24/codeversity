@@ -76,14 +76,35 @@ const ResultPage = () => {
 
     const isPass = result.percentage >= 60;
 
-    // AI Credibility Logic (Simulated per user requirements)
-    const credibilityData = result.aiEvaluation || {
-        credibilityScore: Math.min(100, Math.max(0, result.percentage + (Math.random() * 20 - 10))),
-        skillSync: [
-            { skill: 'Core Knowledge', claimed: 'Expert', verified: result.percentage >= 80 ? 'Expert' : result.percentage >= 60 ? 'Intermediate' : 'Entry', score: result.percentage },
-            { skill: 'Execution Strategy', claimed: 'Senior', verified: result.percentage >= 70 ? 'Optimal' : 'Standard', score: Math.min(100, result.percentage + 5) }
-        ],
-        recommendation: isPass ? "Highly Recommended / Credible" : "Skill Alignment Revision Required"
+    // AI Credibility Logic
+    // We merge the actual AI evaluation with our visualization structure
+    const aiData = result.aiEvaluation || {};
+    
+    // Construct or fallback for credibility score
+    const finalCredibilityScore = aiData.credibilityScore !== undefined 
+        ? aiData.credibilityScore 
+        : Math.min(100, Math.max(0, result.percentage + (Math.random() * 20 - 10)));
+
+    // Construct Skill Sync visualization (derived from actual score if specific data missing)
+    const skillSyncData = aiData.skillSync || [
+        { 
+            skill: 'Core Knowledge', 
+            claimed: 'Expert', 
+            verified: result.percentage >= 80 ? 'Expert' : result.percentage >= 60 ? 'Intermediate' : 'Entry', 
+            score: result.percentage 
+        },
+        { 
+            skill: 'Execution Strategy', 
+            claimed: 'Senior', 
+            verified: result.percentage >= 70 ? 'Optimal' : 'Standard', 
+            score: Math.min(100, result.percentage + 5) 
+        }
+    ];
+
+    const credibilityData = {
+        credibilityScore: finalCredibilityScore,
+        skillSync: skillSyncData,
+        recommendation: aiData.recommendation || (isPass ? "Highly Recommended / Credible" : "Skill Alignment Revision Required")
     };
 
     const credibilityScore = credibilityData.credibilityScore.toFixed(0);
