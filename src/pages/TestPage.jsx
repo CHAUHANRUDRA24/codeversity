@@ -19,6 +19,7 @@ const TestPage = () => {
     const [timeLeft, setTimeLeft] = useState(1800); // 30 minutes
     const [activeQuestion, setActiveQuestion] = useState(0);
     const [tabSwitchViolation, setTabSwitchViolation] = useState(false);
+    const [pasteViolationCount, setPasteViolationCount] = useState(0);
 
     useEffect(() => {
         const fetchJob = async () => {
@@ -95,6 +96,12 @@ const TestPage = () => {
         }));
     };
 
+    const handlePaste = (e) => {
+        e.preventDefault();
+        setPasteViolationCount(prev => prev + 1);
+        alert("⚠️ Copy/Paste is disabled for this assessment.\nRepeated attempts will be flagged to the recruiter.");
+    };
+
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
@@ -111,10 +118,19 @@ const TestPage = () => {
 
         try {
             // Calculate grading results
-            // const gradingResults = await gradeAssessment(job, answers);
+             /* const gradingResults = await gradeAssessment(job, answers); */
             
-            // USE AI GRADING
-            const aiResults = await gradeEntireAssessment(job, answers);
+            // USE AI GRADING with Anti-Cheating Metadata
+            const initialTime = (job.estimatedTime || 30) * 60;
+            const timeTakenSeconds = initialTime - timeLeft;
+            
+            const aiResults = await gradeEntireAssessment(job, answers, {
+                ...(user?.aiAnalysis || {}),
+                tabSwitch: actualViolation || tabSwitchViolation,
+                pasteViolations: pasteViolationCount,
+                timeTakenSeconds,
+                totalQuestions: job.questions.length
+            });
 
             // Sanitize grading results to remove any undefined values which Firestore doesn't support
             const safeGradingResults = JSON.parse(JSON.stringify(aiResults));
@@ -134,6 +150,7 @@ const TestPage = () => {
                 submittedAt: new Date().toISOString(),
                 answers: answers, // Save full answers for review
                 tabSwitchViolation: actualViolation || tabSwitchViolation, // Flag if cheating detected
+                pasteViolations: pasteViolationCount,
                 // Save detailed AI analysis
                 aiEvaluation: safeGradingResults
             });
@@ -144,6 +161,7 @@ const TestPage = () => {
                     total,
                     percentage,
                     tabSwitchViolation: actualViolation || tabSwitchViolation,
+                    pasteViolations: pasteViolationCount,
                     aiEvaluation: aiResults
                 }
             });
@@ -318,6 +336,9 @@ const TestPage = () => {
                                             placeholder="Type your detailed answer here..."
                                             value={answers[activeQuestion] || ''}
                                             onChange={(e) => handleAnswerChange(activeQuestion, e.target.value)}
+                                            onPaste={handlePaste}
+                                            onCopy={(e) => e.preventDefault()}
+                                            onCut={(e) => e.preventDefault()}
                                         ></textarea>
                                         <div className="absolute bottom-4 right-4 text-xs font-bold text-slate-400 pointer-events-none">
                                             {(answers[activeQuestion] || '').length} chars
@@ -345,6 +366,9 @@ const TestPage = () => {
                                             value={answers[activeQuestion] || currentQ.starterCode || ''}
                                             onChange={(e) => handleAnswerChange(activeQuestion, e.target.value)}
                                             spellCheck="false"
+                                            onPaste={handlePaste}
+                                            onCopy={(e) => e.preventDefault()}
+                                            onCut={(e) => e.preventDefault()}
                                         ></textarea>
                                     </div>
                                 )}

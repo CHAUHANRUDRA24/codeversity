@@ -81,12 +81,14 @@ const ResultPage = () => {
     const aiData = result.aiEvaluation || {};
     
     // Construct or fallback for credibility score
-    const finalCredibilityScore = aiData.credibilityScore !== undefined 
-        ? aiData.credibilityScore 
-        : Math.min(100, Math.max(0, result.percentage + (Math.random() * 20 - 10)));
+    const finalCredibilityScore = aiData.integrityAnalysis?.integrityScore !== undefined
+        ? aiData.integrityAnalysis.integrityScore
+        : aiData.credibilityScore !== undefined 
+            ? aiData.credibilityScore 
+            : Math.min(100, Math.max(0, result.percentage + (Math.random() * 20 - 10)));
 
     // Construct Skill Sync visualization (derived from actual score if specific data missing)
-    const skillSyncData = aiData.skillSync || [
+    const skillSyncData = aiData.integrityAnalysis?.skillValidation || aiData.skillSync || [
         { 
             skill: 'Core Knowledge', 
             claimed: 'Expert', 
@@ -104,7 +106,7 @@ const ResultPage = () => {
     const credibilityData = {
         credibilityScore: finalCredibilityScore,
         skillSync: skillSyncData,
-        recommendation: aiData.recommendation || (isPass ? "Highly Recommended / Credible" : "Skill Alignment Revision Required")
+        recommendation: aiData.integrityAnalysis?.conclusion || aiData.recommendation || (isPass ? "Highly Recommended / Credible" : "Skill Alignment Revision Required")
     };
 
     const credibilityScore = credibilityData.credibilityScore.toFixed(0);
@@ -157,9 +159,9 @@ RESUME VS. PERFORMANCE MATRIX
 ${credibilityData.skillSync.map((item, idx) => `
 ${idx + 1}. ${item.skill}
    Resume Claims:        ${item.claimed}
-   Test Performance:     ${item.score.toFixed(0)}%
-   Verified Level:       ${item.verified}
-   Sync Status:          ${item.score >= 60 ? 'ALIGNED ✓' : 'MISMATCH ⚠'}
+   Test Performance:     ${item.score || item.performance || 'N/A'}
+   Verified Level:       ${item.verified || item.status || 'N/A'}
+   Sync Status:          ${(item.score >= 60 || item.status === 'Verified') ? 'ALIGNED ✓' : 'MISMATCH ⚠'}
 `).join('')}
 
 AI CONCLUSION
@@ -247,6 +249,72 @@ For questions or disputes, please contact the recruitment team.
                     </div>
                 )}
 
+                {/* Plagiarism / Credibility Alert */}
+                {((result.pasteViolations > 0) || (aiData.credibilityScore !== undefined && aiData.credibilityScore < 50)) && (
+                    <div className="bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 rounded-[2rem] p-6 shadow-xl animate-in fade-in slide-in-from-top-4 mt-6">
+                        <div className="flex items-start gap-4">
+                             <div className="flex-shrink-0">
+                                <div className="h-12 w-12 bg-amber-500 rounded-2xl flex items-center justify-center">
+                                    <Shield className="w-6 h-6 text-white" />
+                                </div>
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="text-lg font-black text-amber-900 dark:text-amber-100 uppercase tracking-tight mb-2">
+                                    ⚠️ Integrity & Anomaly Report
+                                </h3>
+                                <div className="space-y-2">
+                                    {result.pasteViolations > 0 && (
+                                        <p className="text-sm font-bold text-amber-800 dark:text-amber-200">
+                                            • Paste Attempts Detected: <span className="text-red-600 font-black">{result.pasteViolations}</span> (Copy/Paste was disabled)
+                                        </p>
+                                    )}
+                                    {aiData.credibilityScore < 50 && (
+                                        <p className="text-sm font-bold text-amber-800 dark:text-amber-200">
+                                            • Low Credibility Score: <span className="text-red-600 font-black">{aiData.credibilityScore}/100</span>. The AI analysis suggests unusual answer patterns or potential non-original code.
+                                        </p>
+                                    )}
+                                    {aiData.cheatingAnalysis && (
+                                         <div className="mt-3 bg-white dark:bg-amber-950/30 rounded-xl p-4 border border-amber-200 dark:border-amber-800">
+                                            <p className="text-xs font-black text-amber-700 dark:text-amber-300 uppercase tracking-wider mb-1">AI ANALYSIS:</p>
+                                            <p className="text-xs font-medium text-amber-900 dark:text-amber-100 italic">
+                                                "{aiData.cheatingAnalysis}"
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                
+                {/* Integrity Alert from AI (New Feature) */}
+                {aiData.integrityAnalysis && aiData.integrityAnalysis.integrityScore < 70 && (
+                     <div className="bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 rounded-[2rem] p-6 shadow-xl animate-in fade-in slide-in-from-top-4">
+                        <div className="flex items-start gap-4">
+                             <div className="flex-shrink-0">
+                                <div className="h-12 w-12 bg-amber-500 rounded-2xl flex items-center justify-center text-white">
+                                    <Shield className="w-6 h-6" />
+                                </div>
+                            </div>
+                             <div className="flex-1">
+                                <h3 className="text-lg font-black text-amber-900 dark:text-amber-100 uppercase tracking-tight mb-2">
+                                    Integrity Verification Flagged
+                                </h3>
+                                <p className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-2">
+                                    {aiData.integrityAnalysis.conclusion}
+                                </p>
+                                 <div className="flex flex-wrap gap-2 mt-2">
+                                     {aiData.integrityAnalysis.flags && aiData.integrityAnalysis.flags.map((flag, i) => (
+                                          <span key={i} className="px-3 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 rounded-lg text-[10px] font-black uppercase tracking-widest border border-amber-200 dark:border-amber-800">
+                                            {flag}
+                                          </span>
+                                     ))}
+                                 </div>
+                             </div>
+                        </div>
+                     </div>
+                )}
+
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
                     {/* Left Panel */}
@@ -295,20 +363,29 @@ For questions or disputes, please contact the recruitment team.
                                 <h3 className="text-xs font-black text-blue-400 uppercase tracking-widest mb-8">Skill Credibility Score</h3>
                                 <div className="flex items-end gap-3 mb-6">
                                     <span className="text-6xl font-black tracking-tighter text-white">{credibilityScore}%</span>
-                                    <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg text-[10px] font-black uppercase tracking-widest mb-2 border border-emerald-500/30">
-                                        Verified
+                                    <div className={`p-2 rounded-lg text-[10px] font-black uppercase tracking-widest mb-2 border ${credibilityScore >= 70 ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border-rose-500/30'}`}>
+                                        {credibilityScore >= 70 ? 'Verified' : 'Review'}
                                     </div>
                                 </div>
                                 <p className="text-[10px] font-bold text-slate-400 leading-relaxed uppercase tracking-tight">
                                     Our AI compares resume claims against actual performance data to identify skill-mismatch risks.
                                 </p>
                                 <div className="mt-8 h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
-                                    <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-1000" style={{ width: `${credibilityScore}%` }}></div>
+                                    <div className={`h-full transition-all duration-1000 ${credibilityScore >= 70 ? 'bg-gradient-to-r from-blue-500 to-indigo-500' : 'bg-rose-500'}`} style={{ width: `${credibilityScore}%` }}></div>
                                 </div>
                                 <div className="mt-4 flex justify-between text-[10px] font-black uppercase text-slate-500">
                                     <span>Mismatch: {mismatchScore}%</span>
                                     <span>Confidence: High</span>
                                 </div>
+                                
+                                {aiData.integrityAnalysis?.botProbability > 20 && (
+                                     <div className="mt-6 pt-6 border-t border-white/10">
+                                        <div className="flex items-center gap-2 text-rose-400">
+                                            <AlertTriangle className="w-4 h-4" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest">Bot Probability: {aiData.integrityAnalysis.botProbability}%</span>
+                                        </div>
+                                     </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -327,34 +404,40 @@ For questions or disputes, please contact the recruitment team.
                             </div>
 
                             <div className="space-y-6">
-                                {credibilityData.skillSync.map((item, idx) => (
-                                    <div key={idx} className="group p-6 rounded-[2rem] bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-900 transition-all flex flex-col md:flex-row items-center gap-8">
-                                        <div className="flex-1 space-y-2 text-center md:text-left">
-                                            <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{item.skill}</h4>
-                                            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Resume says:</span>
-                                                    <span className="bg-white dark:bg-slate-800 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-700">{item.claimed}</span>
-                                                </div>
-                                                <ChevronRight className="w-3 h-3 text-slate-300" />
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Test Score:</span>
-                                                    <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${item.score >= 70 ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 border-emerald-100 dark:border-emerald-900/50' : 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 border-amber-100 dark:border-amber-900/50'
-                                                        }`}>
-                                                        {item.score.toFixed(0)}%
-                                                    </span>
+                                {credibilityData.skillSync.map((item, idx) => {
+                                    const score = item.score || (item.performance === 'High' ? 90 : item.performance === 'Low' ? 30 : 50);
+                                    const verifiedLabel = item.verified || item.status || 'Unknown';
+                                    const isGood = score >= 60 || verifiedLabel === 'Verified';
+
+                                    return (
+                                        <div key={idx} className="group p-6 rounded-[2rem] bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-900 transition-all flex flex-col md:flex-row items-center gap-8">
+                                            <div className="flex-1 space-y-2 text-center md:text-left">
+                                                <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{item.skill}</h4>
+                                                <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Resume says:</span>
+                                                        <span className="bg-white dark:bg-slate-800 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-700">{item.claimed}</span>
+                                                    </div>
+                                                    <ChevronRight className="w-3 h-3 text-slate-300" />
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Performance:</span>
+                                                        <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${isGood ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 border-emerald-100 dark:border-emerald-900/50' : 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 border-amber-100 dark:border-amber-900/50'
+                                                            }`}>
+                                                            {typeof item.score === 'number' ? item.score.toFixed(0) + '%' : item.performance}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
+                                            <div className="w-full md:w-40 flex flex-col items-center">
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Sync Status</p>
+                                                <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${isGood ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
+                                                    }`}>
+                                                    {verifiedLabel}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div className="w-full md:w-40 flex flex-col items-center">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Sync Status</p>
-                                            <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${item.score >= 60 ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
-                                                }`}>
-                                                {item.verified}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
 
@@ -364,7 +447,6 @@ For questions or disputes, please contact the recruitment team.
                             : 'bg-rose-50/50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-900/30 text-rose-900 dark:text-rose-100'
                             }`}>
                             
-                            {/* ... (Existing AI Conclusion Content) ... */}
                             <div className="relative z-10">
                                 <div className="flex items-center gap-4 mb-6">
                                     <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shadow-lg ${isPass ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}`}>
@@ -466,11 +548,65 @@ For questions or disputes, please contact the recruitment team.
                                 ))}
                             </div>
                         )}
+
+                        {/* Explainable AI Decision Support - New Feature */}
+                        {aiData?.rejectionReason && (
+                            <div className="mt-10 bg-white dark:bg-slate-900/50 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <BrainCircuit className="w-6 h-6 text-purple-600" />
+                                    <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">AI Decision Profile</h2>
+                                </div>
+
+                                <div className={`p-6 rounded-3xl border ${aiData.rejectionReason.status === 'Accepted' ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-red-500/5 border-red-500/20'}`}>
+                                    <div className="flex items-start gap-4">
+                                        <div className={`mt-1 p-2 rounded-lg ${aiData.rejectionReason.status === 'Accepted' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'}`}>
+                                            {aiData.rejectionReason.status === 'Accepted' ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
+                                        </div>
+                                        <div className="flex-1">
+                                            <h5 className={`font-black text-sm uppercase tracking-wide mb-1 ${aiData.rejectionReason.status === 'Accepted' ? 'text-emerald-500' : 'text-red-500'}`}>
+                                                {aiData.rejectionReason.status === 'Accepted' ? 'Profile Status: Accepted' : 'Decision Insight: Rejected'}
+                                            </h5>
+                                            <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed font-medium italic">
+                                                "{aiData.rejectionReason.reason}"
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8 pt-8 border-t border-slate-200 dark:border-slate-800/50">
+                                        <div className="space-y-4">
+                                            <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-widest flex items-center gap-2">
+                                                <Sparkles className="w-4 h-4" /> Demonstrated Proficiencies
+                                            </p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {aiData.rejectionReason.strengths?.map((s, i) => (
+                                                    <span key={i} className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20 rounded-lg text-xs font-bold">
+                                                        {s}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="space-y-4">
+                                            <p className="text-[10px] font-black text-red-600 dark:text-red-500 uppercase tracking-widest flex items-center gap-2">
+                                                <AlertTriangle className="w-4 h-4" /> Technical Gaps Detected
+                                            </p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {aiData.rejectionReason.weaknesses?.map((w, i) => (
+                                                    <span key={i} className="px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border border-red-100 dark:border-red-500/20 rounded-lg text-xs font-bold">
+                                                        {w}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
         </div>
     );
 };
+
 
 export default ResultPage;

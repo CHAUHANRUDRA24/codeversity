@@ -25,6 +25,9 @@ const RecruiterDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [loadingCandidates, setLoadingCandidates] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [qualificationThreshold, setQualificationThreshold] = useState(60);
+    const [viewMode, setViewMode] = useState('candidates'); // 'candidates' or 'leaderboard'
+    const [isSavingThreshold, setIsSavingThreshold] = useState(false);
 
     // Fetch Jobs on Mount
     useEffect(() => {
@@ -64,11 +67,11 @@ const RecruiterDashboard = () => {
         fetchJobs();
     }, [user]);
 
-    // Fetch Candidates for a Job
     const handleViewCandidates = async (job) => {
         setSelectedJob(job);
         setLoadingCandidates(true);
         setCandidates([]);
+        setQualificationThreshold(job.minScore || 60);
 
         try {
             const q = query(collection(db, "results"), where("jobId", "==", job.id));
@@ -109,6 +112,28 @@ const RecruiterDashboard = () => {
             console.error("Error fetching candidates:", error);
         }
         setLoadingCandidates(false);
+    };
+
+    const updateThreshold = async (newThreshold) => {
+        setQualificationThreshold(newThreshold);
+        if (!selectedJob) return;
+        
+        // Debounce or just save locally until blur? For now save on change with small delay or just let user click save?
+        // Let's autosave with a slight delay or just optimistic UI.
+        // Actually, let's just save.
+        try {
+           setIsSavingThreshold(true);
+           const jobRef = doc(db, "jobs", selectedJob.id);
+           // distinct update
+           await import('firebase/firestore').then(({ updateDoc }) => updateDoc(jobRef, { minScore: newThreshold }));
+           // Update local job state
+           setJobs(prev => prev.map(j => j.id === selectedJob.id ? { ...j, minScore: newThreshold } : j));
+           setSelectedJob(prev => ({ ...prev, minScore: newThreshold }));
+        } catch (e) {
+            console.error("Error saving threshold", e);
+        } finally {
+            setIsSavingThreshold(false);
+        }
     };
 
     const handleReject = (candidate) => {
@@ -311,20 +336,80 @@ const RecruiterDashboard = () => {
                                     </div>
                                 </div>
                                 <div className="flex gap-3">
-                                    <div className="relative">
-                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                        <input
-                                            placeholder="Search DNA..."
-                                            className="h-12 pl-12 pr-6 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-xs font-bold focus:outline-none focus:ring-4 focus:ring-blue-500/5 focus:bg-white dark:focus:bg-slate-900 transition-all w-64"
-                                        />
+                                    <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                                        <button 
+                                            onClick={() => setViewMode('candidates')}
+                                            className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${viewMode === 'candidates' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400 hover:text-slate-600'}`}
+                                        >
+                                            Pipeline
+                                        </button>
+                                        <button 
+                                             onClick={() => setViewMode('leaderboard')}
+                                             className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${viewMode === 'leaderboard' ? 'bg-white dark:bg-slate-700 shadow-sm text-blue-600 dark:text-blue-400' : 'text-slate-400 hover:text-slate-600'}`}
+                                        >
+                                            Leaderboard
+                                        </button>
                                     </div>
-                                    <button className="h-12 px-6 flex items-center gap-2 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all">
-                                        <Download className="w-4 h-4" /> Export Report
-                                    </button>
+                                    <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Min Score:</span>
+                                        <input 
+                                            type="range" 
+                                            min="0" 
+                                            max="100" 
+                                            value={qualificationThreshold} 
+                                            onChange={(e) => updateThreshold(Number(e.target.value))}
+                                            className="w-24 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                        />
+                                        <span className={`text-xs font-bold ${qualificationThreshold > 80 ? 'text-blue-600' : 'text-slate-600'}`}>{qualificationThreshold}%</span>
+                                    </div>
                                 </div>
                             </div>
 
                             <div className="overflow-x-auto p-2">
+                                {viewMode === 'leaderboard' ? (
+                                    <div className="p-8">
+                                         <div className="flex justify-center items-end gap-4 mb-12 h-64">
+                                            {candidates.slice(0, 3).length >= 2 && (
+                                                <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700 delay-100">
+                                                    <div className="mb-2 text-center">
+                                                        <div className="font-black text-slate-900 dark:text-white uppercase tracking-tight text-sm max-w-[120px] truncate">{candidates[1].user?.name || "Unknown"}</div>
+                                                        <div className="text-xs font-bold text-slate-500">{candidates[1].percentage.toFixed(0)}%</div>
+                                                    </div>
+                                                    <div className="w-32 bg-slate-200 dark:bg-slate-700 rounded-t-2xl flex items-end justify-center pb-4 text-4xl font-black text-slate-400/50" style={{ height: '140px' }}>2</div>
+                                                </div>
+                                            )}
+                                            {candidates.slice(0, 3).length >= 1 && (
+                                                 <div className="flex flex-col items-center z-10 animate-in slide-in-from-bottom-8 duration-700">
+                                                     <div className="mb-2 text-center">
+                                                        <Award className="w-8 h-8 text-yellow-400 mx-auto mb-1" />
+                                                        <div className="font-black text-slate-900 dark:text-white uppercase tracking-tight text-base max-w-[140px] truncate">{candidates[0].user?.name || "Unknown"}</div>
+                                                        <div className="text-sm font-bold text-blue-600">{candidates[0].percentage.toFixed(0)}%</div>
+                                                    </div>
+                                                    <div className="w-40 bg-gradient-to-t from-blue-600 to-blue-500 rounded-t-3xl flex items-end justify-center pb-6 text-6xl font-black text-white/20 shadow-2xl shadow-blue-500/30" style={{ height: '180px' }}>1</div>
+                                                 </div>
+                                            )}
+                                            {candidates.slice(0, 3).length >= 3 && (
+                                                <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700 delay-200">
+                                                    <div className="mb-2 text-center">
+                                                        <div className="font-black text-slate-900 dark:text-white uppercase tracking-tight text-sm max-w-[120px] truncate">{candidates[2].user?.name || "Unknown"}</div>
+                                                        <div className="text-xs font-bold text-slate-500">{candidates[2].percentage.toFixed(0)}%</div>
+                                                    </div>
+                                                    <div className="w-32 bg-slate-200 dark:bg-slate-700 rounded-t-2xl flex items-end justify-center pb-4 text-4xl font-black text-slate-400/50" style={{ height: '100px' }}>3</div>
+                                                </div>
+                                            )}
+                                         </div>
+                                         
+                                         <div className="space-y-2 max-w-3xl mx-auto">
+                                            {candidates.slice(3).map((candidate, idx) => (
+                                                <div key={candidate.id} className="flex items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                                    <div className="w-8 font-black text-slate-400 text-center">{idx + 4}</div>
+                                                    <div className="flex-1 px-4 font-bold text-slate-700 dark:text-slate-300">{candidate.user?.name || "Unknown"}</div>
+                                                    <div className="font-black text-slate-900 dark:text-white">{candidate.percentage.toFixed(0)}%</div>
+                                                </div>
+                                            ))}
+                                         </div>
+                                    </div>
+                                ) : (
                                 <table className="w-full text-left text-sm whitespace-nowrap">
                                     <thead className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
                                         <tr>
@@ -353,10 +438,11 @@ const RecruiterDashboard = () => {
                                         ) : (
                                             candidates.map((candidate, index) => {
                                                 const fakeCredibility = Math.min(100, Math.max(0, candidate.percentage + (Math.random() * 20 - 10))).toFixed(0);
+                                                const isQualified = candidate.percentage >= qualificationThreshold;
                                                 return (
                                                     <tr 
                                                         key={candidate.id} 
-                                                        className="group hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-all cursor-pointer"
+                                                        className={`group transition-all cursor-pointer ${isQualified ? 'hover:bg-slate-50/80 dark:hover:bg-slate-800/30' : 'opacity-50 hover:opacity-100 bg-slate-50/50 dark:bg-slate-900/50'}`}
                                                         onClick={() => setSelectedCandidate(candidate)}
                                                     >
                                                         <td className="px-8 py-6">
@@ -373,10 +459,6 @@ const RecruiterDashboard = () => {
                                                                     {candidate.tabSwitchViolation && (
                                                                         <div className="group/tooltip relative">
                                                                             <AlertTriangle className="w-4 h-4 text-amber-500" />
-                                                                            <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-3 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                                                                                Tab Switch Detected
-                                                                                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900"></div>
-                                                                            </div>
                                                                         </div>
                                                                     )}
                                                                 </div>
@@ -387,7 +469,7 @@ const RecruiterDashboard = () => {
                                                             <div className="flex items-center gap-4">
                                                                 <span className="font-black text-slate-900 dark:text-white w-10">{candidate.percentage.toFixed(0)}%</span>
                                                                 <div className="h-1.5 w-32 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                                                    <div className={`h-full transition-all duration-1000 ${candidate.percentage >= 60 ? 'bg-emerald-500' : 'bg-rose-500'}`} style={{ width: `${candidate.percentage}%` }}></div>
+                                                                    <div className={`h-full transition-all duration-1000 ${candidate.percentage >= qualificationThreshold ? 'bg-emerald-500' : 'bg-rose-500'}`} style={{ width: `${candidate.percentage}%` }}></div>
                                                                 </div>
                                                             </div>
                                                         </td>
@@ -395,7 +477,6 @@ const RecruiterDashboard = () => {
                                                             <div className="flex items-center gap-3 text-blue-600 dark:text-blue-400">
                                                                 <BrainCircuit className="w-4 h-4" />
                                                                 <span className="font-black text-lg tracking-tighter">{candidate.aiEvaluation?.credibilityScore?.toFixed(0) || fakeCredibility}%</span>
-                                                                <span className="text-[9px] font-black uppercase tracking-widest opacity-60">Match</span>
                                                             </div>
                                                         </td>
                                                         <td className="px-8 py-6">
@@ -417,25 +498,16 @@ const RecruiterDashboard = () => {
                                                             <div className="flex flex-col gap-1">
                                                                 <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border ${candidate.tabSwitchViolation 
                                                                     ? 'bg-red-50 dark:bg-red-900/20 text-red-600 border-red-100 dark:border-red-900/50' 
-                                                                    : candidate.percentage >= 80 
-                                                                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 border-blue-100 dark:border-blue-900/50' 
-                                                                        : candidate.percentage >= 60 
-                                                                            ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-100 dark:border-emerald-900/50' 
-                                                                            : 'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-100 dark:border-slate-700'
+                                                                    : candidate.percentage >= qualificationThreshold 
+                                                                        ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-100 dark:border-emerald-900/50' 
+                                                                        : 'bg-slate-50 dark:bg-slate-800 text-slate-400 border-slate-100 dark:border-slate-700'
                                                                     }`}>
                                                                     {candidate.tabSwitchViolation 
                                                                         ? <><AlertTriangle className="w-3 h-3" /> Violation</> 
-                                                                        : candidate.percentage >= 80 
-                                                                            ? 'Exceptional' 
-                                                                            : candidate.percentage >= 60 
-                                                                                ? 'Verified' 
-                                                                                : 'Review Required'}
+                                                                        : candidate.percentage >= qualificationThreshold 
+                                                                            ? 'Qualified' 
+                                                                            : 'Below Threshold'}
                                                                 </span>
-                                                                {(candidate.aiEvaluation?.credibilityScore < 60) && (
-                                                                    <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-500 uppercase tracking-wide">
-                                                                         <AlertTriangle className="w-3 h-3" /> Low Trust / Mismatch
-                                                                    </span>
-                                                                )}
                                                             </div>
                                                         </td>
                                                         <td className="px-8 py-6">
@@ -456,6 +528,7 @@ const RecruiterDashboard = () => {
                                         )}
                                     </tbody>
                                 </table>
+                                )}
                             </div>
                         </div>
             )}
@@ -481,7 +554,7 @@ const RecruiterDashboard = () => {
                                 <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">
                                     {selectedCandidate.user?.name || selectedCandidate.mockUser?.name || "Unknown Candidate"}
                                 </h2>
-                                <div className="flex items-center gap-3 flex-wrap">
+                                <div className="flex items-center gap-3 flex-wrap mb-8">
                                     <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg text-[10px] font-black uppercase tracking-widest">
                                         {selectedCandidate.mockUser?.email || selectedCandidate.user?.email || "No Email"}
                                     </span>
@@ -493,6 +566,317 @@ const RecruiterDashboard = () => {
                                      <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg text-[10px] font-black uppercase tracking-widest">
                                         Score: {selectedCandidate.percentage}%
                                     </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Assessment Summary Card */}
+                                <div className="bg-[#151b2b] p-6 rounded-3xl border border-slate-800/50">
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <Award className="w-5 h-5 text-blue-500" />
+                                        <h4 className="text-slate-300 font-black text-xs uppercase tracking-widest">Assessment Summary</h4>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div>
+                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Position</p>
+                                            <p className="text-white font-bold">{selectedCandidate.jobTitle}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Submission Date</p>
+                                            <div className="flex items-center gap-2 text-slate-300 text-sm font-medium">
+                                                <Calendar className="w-4 h-4 text-slate-500" />
+                                                {new Date(selectedCandidate.submittedAt).toLocaleString(undefined, {
+                                                    year: 'numeric', month: 'long', day: 'numeric',
+                                                    hour: '2-digit', minute: '2-digit'
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-4 border-t border-slate-800">
+                                            <div className="flex justify-between items-end mb-2">
+                                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Correct Answers</p>
+                                                <p className="text-emerald-500 font-bold text-sm">{selectedCandidate.score} <span className="text-slate-600">/ {selectedCandidate.total}</span></p>
+                                            </div>
+                                            <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                                                <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${selectedCandidate.percentage}%` }}></div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex justify-between items-center pt-2">
+                                            <p className="text-xs font-bold text-slate-400">Overall Percentage</p>
+                                            <p className="text-3xl font-black text-white">{selectedCandidate.percentage.toFixed(0)}%</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* AI Analysis Card */}
+                                <div className="bg-[#151b2b] p-6 rounded-3xl border border-slate-800/50">
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <BrainCircuit className="w-5 h-5 text-indigo-500" />
+                                        <h4 className="text-slate-300 font-black text-xs uppercase tracking-widest">AI Analysis</h4>
+                                    </div>
+
+                                    {(() => {
+                                        const fakeCredibility = Math.min(100, Math.max(0, selectedCandidate.percentage + (Math.random() * 20 - 10)));
+                                        const credibility = selectedCandidate.aiEvaluation?.credibilityScore || fakeCredibility;
+                                        const confidence = calculateHiringConfidence(selectedCandidate.percentage, null, credibility);
+                                        const isLowConfidence = confidence.score < 50;
+                                        const isHighConfidence = confidence.score > 75;
+
+                                        return (
+                                            <div className="space-y-6">
+                                                <div className={`p-4 rounded-2xl border ${isLowConfidence ? 'bg-red-500/10 border-red-500/20' : isHighConfidence ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-amber-500/10 border-amber-500/20'}`}>
+                                                    <p className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-70" style={{ color: isLowConfidence ? '#ef4444' : isHighConfidence ? '#10b981' : '#f59e0b' }}>Hiring Confidence</p>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`w-3 h-3 rounded-full ${isLowConfidence ? 'bg-red-500 animate-pulse' : isHighConfidence ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
+                                                        <p className="text-3xl font-black" style={{ color: isLowConfidence ? '#ef4444' : isHighConfidence ? '#10b981' : '#f59e0b' }}>{confidence.score}%</p>
+                                                    </div>
+                                                    <p className="text-xs font-bold mt-1" style={{ color: isLowConfidence ? '#ef4444' : isHighConfidence ? '#10b981' : '#f59e0b' }}>{confidence.label}</p>
+                                                </div>
+
+                                                <div className="space-y-3">
+                                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Confidence Breakdown</p>
+                                                    <div className="flex justify-between text-xs font-medium text-slate-400 border-b border-slate-800 pb-2">
+                                                        <span>Test Score (60%)</span>
+                                                        <span className="text-white">{(selectedCandidate.percentage * 0.6).toFixed(0)}pts</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-xs font-medium text-slate-400 border-b border-slate-800 pb-2">
+                                                        <span>Resume Match (30%)</span>
+                                                        <span className="text-white">{(credibility * 0.3).toFixed(0)}pts</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-xs font-medium text-slate-400 pb-1">
+                                                        <span>Consistency (10%)</span>
+                                                        <span className="text-white">{selectedCandidate.tabSwitchViolation ? '0pts' : '10pts'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                            </div>
+
+                            <div className="bg-[#151b2b] p-6 rounded-3xl border border-slate-800/50">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <Shield className="w-5 h-5 text-slate-400" />
+                                    <h4 className="text-slate-300 font-black text-xs uppercase tracking-widest">Hiring Recommendation</h4>
+                                </div>
+
+                                <div className="bg-slate-900/50 rounded-2xl p-4 border border-slate-800 flex items-center gap-4">
+                                    {selectedCandidate.percentage >= qualificationThreshold && !selectedCandidate.tabSwitchViolation ? (
+                                        <div className="h-10 w-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+                                            <CheckCircle className="w-6 h-6 text-emerald-500" />
+                                        </div>
+                                    ) : (
+                                        <div className="h-10 w-10 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                                            <XCircle className="w-6 h-6 text-amber-500" />
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <h5 className={`font-black text-sm uppercase tracking-wide mb-1 ${selectedCandidate.percentage >= qualificationThreshold && !selectedCandidate.tabSwitchViolation ? 'text-emerald-500' : 'text-amber-500'
+                                            }`}>
+                                            {selectedCandidate.percentage >= 80 ? 'STRONGLY RECOMMENDED' :
+                                                selectedCandidate.percentage >= qualificationThreshold ? 'PROCEED TO INTERVIEW' :
+                                                    'BELOW THRESHOLD / REVIEW'}
+                                        </h5>
+                                        <p className="text-slate-400 text-xs font-medium">
+                                            {selectedCandidate.percentage >= qualificationThreshold && !selectedCandidate.tabSwitchViolation
+                                                ? "Candidate has met the qualification threshold. Recommended to proceed to the next stage."
+                                                : "Candidate score is below the set threshold or policy violations were detected."}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                             {/* Skill-Wise Analysis - New Feature */}
+                             <div className="bg-[#151b2b] p-6 rounded-3xl border border-slate-800/50">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <BrainCircuit className="w-5 h-5 text-cyan-500" />
+                                    <h4 className="text-slate-300 font-black text-xs uppercase tracking-widest">Skill Competency Map</h4>
+                                </div>
+                                <div className="space-y-4">
+                                    {selectedCandidate.aiEvaluation?.skillsAnalysis ? (
+                                        Object.entries(selectedCandidate.aiEvaluation.skillsAnalysis).map(([skill, data], idx) => (
+                                            <div key={idx}>
+                                                <div className="flex justify-between items-end mb-1">
+                                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{skill}</span>
+                                                    <span className="text-white font-bold text-xs">{data.score}/{data.total}</span>
+                                                </div>
+                                                <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${(data.score / data.total) * 100}%` }}></div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        // Fallback if no specific analysis exists - Mocking based on question types if possible or generic
+                                        ["Technical Knowledge", "Problem Solving", "Code Quality"].map((skill, idx) => {
+                                            const mockVal = Math.min(100, selectedCandidate.percentage + (idx % 2 === 0 ? 5 : -5));
+                                            return (
+                                                <div key={idx}>
+                                                    <div className="flex justify-between items-end mb-1">
+                                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{skill} (Est.)</span>
+                                                        <span className="text-white font-bold text-xs">{mockVal.toFixed(0)}%</span>
+                                                    </div>
+                                                    <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                                                        <div className="h-full bg-slate-600 rounded-full" style={{ width: `${mockVal}%` }}></div>
+                                                    </div>
+                                                </div>
+                                            )
+                                        })
+                                    )}
+                                </div>
+                             </div>
+
+                            {/* Explainable Rejection Engine - New Feature */}
+                            {selectedCandidate.aiEvaluation?.rejectionReason && (
+                                <div className="bg-[#151b2b] p-6 rounded-3xl border border-slate-800/50 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                    <div className="flex items-center gap-3">
+                                        <BrainCircuit className="w-5 h-5 text-purple-500" />
+                                        <h4 className="text-slate-300 font-black text-xs uppercase tracking-widest">AI Decision Support</h4>
+                                    </div>
+
+                                    <div className={`p-5 rounded-2xl border ${selectedCandidate.aiEvaluation.rejectionReason.status === 'Accepted' ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-red-500/5 border-red-500/20'}`}>
+                                        <div className="flex items-start gap-4">
+                                            <div className={`mt-1 p-2 rounded-lg ${selectedCandidate.aiEvaluation.rejectionReason.status === 'Accepted' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'}`}>
+                                                {selectedCandidate.aiEvaluation.rejectionReason.status === 'Accepted' ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
+                                            </div>
+                                            <div className="flex-1">
+                                                <h5 className={`font-black text-sm uppercase tracking-wide mb-1 ${selectedCandidate.aiEvaluation.rejectionReason.status === 'Accepted' ? 'text-emerald-500' : 'text-red-500'}`}>
+                                                    {selectedCandidate.aiEvaluation.rejectionReason.status === 'Accepted' ? 'Candidate Accepted' : 'Decision: Rejected because...'}
+                                                </h5>
+                                                <p className="text-slate-300 text-sm leading-relaxed font-medium">
+                                                    {selectedCandidate.aiEvaluation.rejectionReason.reason}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-6 border-t border-slate-800/50">
+                                            <div>
+                                                <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                                    <Sparkles className="w-3 h-3" /> Key Strengths
+                                                </p>
+                                                <ul className="space-y-2">
+                                                    {selectedCandidate.aiEvaluation.rejectionReason.strengths?.map((s, i) => (
+                                                        <li key={i} className="text-xs text-slate-400 flex items-start gap-2">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/40 mt-1 shrink-0" />
+                                                            {s}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                                    <AlertTriangle className="w-3 h-3" /> Growth Areas
+                                                </p>
+                                                <ul className="space-y-2">
+                                                    {selectedCandidate.aiEvaluation.rejectionReason.weaknesses?.map((w, i) => (
+                                                        <li key={i} className="text-xs text-slate-400 flex items-start gap-2">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-red-500/40 mt-1 shrink-0" />
+                                                            {w}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Integrity Flags Detected */}
+                            {selectedCandidate.tabSwitchViolation && (
+                                <div className="bg-red-500/10 border border-red-500/20 rounded-3xl p-6 flex flex-col gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <AlertTriangle className="w-6 h-6 text-red-500" />
+                                            <h4 className="text-red-500 font-black text-sm uppercase tracking-widest">Integrity Flags Detected</h4>
+                                        </div>
+                                        <p className="text-red-400 text-xs font-medium">
+                                            Our proctoring system flagged this submission for manual review due to the following anomalies:
+                                        </p>
+                                        <div className="flex gap-3">
+                                            <div className="px-3 py-1.5 bg-red-500/20 rounded-lg border border-red-500/30 text-[10px] font-black uppercase tracking-widest text-red-400">
+                                                Moderate Tab Switching
+                                            </div>
+                                            <div className="px-3 py-1.5 bg-red-500/20 rounded-lg border border-red-500/30 text-[10px] font-black uppercase tracking-widest text-red-400">
+                                                Manual Review Recommended
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Response Analysis - Image 4 Design */}
+                                {selectedJob && selectedJob.questions && (
+                                    <div className="space-y-6">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <h4 className="text-slate-300 font-black text-xs uppercase tracking-widest">Response Analysis</h4>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            {selectedJob.questions.map((q, idx) => {
+                                                const details = selectedCandidate.aiEvaluation?.details || [];
+                                                const answerDetail = details.find(d => d.questionId === q.id) || details[idx];
+                                                const isSkipped = !answerDetail?.userAnswer;
+                                                const displayedAnswer = isSkipped ? 'SKIPPED' : (typeof answerDetail?.userAnswer === 'string' ? answerDetail.userAnswer : JSON.stringify(answerDetail?.userAnswer));
+
+                                                const isCorrect = answerDetail?.isCorrect || (answerDetail?.score >= 1);
+                                                const answerColorClass = isSkipped
+                                                    ? 'text-orange-500'
+                                                    : isCorrect
+                                                        ? 'text-emerald-500'
+                                                        : 'text-red-500';
+
+                                                return (
+                                                    <div key={idx} className="bg-white dark:bg-[#151b2b] p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-6 items-start">
+                                                        <div className="flex-shrink-0">
+                                                            <div className="h-10 w-10 bg-amber-50 dark:bg-amber-900/20 rounded-xl flex items-center justify-center font-black text-amber-600 dark:text-amber-500 text-sm border border-amber-100 dark:border-amber-800">
+                                                                {idx + 1}
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex-1 space-y-3 w-full text-left">
+                                                            <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm md:text-base leading-relaxed">
+                                                                {q.question}
+                                                            </h3>
+
+                                                            <div className="flex flex-col sm:flex-row gap-4 sm:gap-12 text-[10px] uppercase font-black tracking-widest w-full">
+                                                                <div className="flex items-center gap-2 min-w-0">
+                                                                    <span className="text-slate-400 flex-shrink-0">ANS:</span>
+                                                                    <span className={`truncate ${answerColorClass}`}>
+                                                                        {displayedAnswer}
+                                                                    </span>
+                                                                </div>
+
+                                                                <div className="flex items-center gap-2 min-w-0">
+                                                                    <span className="text-slate-400 flex-shrink-0">IDEAL:</span>
+                                                                    <span className="text-slate-600 dark:text-slate-400 truncate">
+                                                                        {q.correctAnswer || q.idealAnswer || 'N/A'}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Actions */}
+                                <div className="flex gap-4 pt-2">
+                                    <button
+                                        onClick={() => navigate(`/result/${selectedCandidate.jobId}`, { state: { ...selectedCandidate, isRecruiterView: true } })}
+                                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 group"
+                                    >
+                                        <Eye className="w-4 h-4 group-hover:scale-110 transition-transform" /> View Full Report
+                                    </button>
+                                    <button
+                                        onClick={() => setSelectedCandidate(null)}
+                                        className="px-8 bg-slate-800 hover:bg-slate-700 text-slate-300 py-4 rounded-xl font-black uppercase tracking-widest text-xs transition-all"
+                                    >
+                                        Close
+                                    </button>
+>>>>>>> 9f530201b99a911ed8e7c8c37a6ba7faae4d1929
                                 </div>
                             </div>
                         </div>

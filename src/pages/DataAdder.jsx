@@ -72,12 +72,19 @@ const DataAdder = () => {
                     requirements: ["5+ years experience", "Expert in React & Node", "Experience with LLMs (OpenAI/Groq)", "Cloud Architecture (AWS/Firebase)"],
                     status: "open",
                     createdAt: new Date().toISOString(),
+                    timeLimit: 45, // 45 Minutes Constraint
+                    skillPriorities: {
+                        "System Design": "Critical",
+                        "React Performance": "High",
+                        "Database Optimization": "High",
+                        "CSS": "Low"
+                    },
                     questions: [
-                        { id: "q1", type: "mcq", question: "Which hook is best for complex state logic?", options: ["useState", "useEffect", "useReducer", "useRef"] },
-                        { id: "q2", type: "mcq", question: "What is the primary purpose of process.nextTick() in Node.js?", options: ["To schedule a callback after the current event loop", "To execute immediately", "To run before IO operations", "To delay execution efficiently"] },
-                        { id: "q3", type: "mcq", question: "Which HTTP status code represents 'Forbidden'?", options: ["401", "403", "404", "500"] },
-                        { id: "q4", type: "mcq", question: "What is the difference between SQL and NoSQL?", options: ["Scalability approach", "Language used", "Data storage model", "All of the above"] },
-                        { id: "q5", type: "mcq", question: "In React, what prevents unnecessary re-renders?", options: ["React.memo", "useEffect", "useState", "Context API"] },
+                        { id: "q1", type: "mcq", question: "Which hook is best for complex state logic?", options: ["useState", "useEffect", "useReducer", "useRef"], correctAnswer: "useReducer" },
+                        { id: "q2", type: "mcq", question: "What is the primary purpose of process.nextTick() in Node.js?", options: ["To schedule a callback after the current event loop", "To execute immediately", "To run before IO operations", "To delay execution efficiently"], correctAnswer: "To schedule a callback after the current event loop" },
+                        { id: "q3", type: "mcq", question: "Which HTTP status code represents 'Forbidden'?", options: ["401", "403", "404", "500"], correctAnswer: "403" },
+                        { id: "q4", type: "mcq", question: "What is the difference between SQL and NoSQL?", options: ["Scalability approach", "Language used", "Data storage model", "All of the above"], correctAnswer: "All of the above" },
+                        { id: "q5", type: "mcq", question: "In React, what prevents unnecessary re-renders?", options: ["React.memo", "useEffect", "useState", "Context API"], correctAnswer: "React.memo" },
                         { id: "q6", type: "subjective", question: "Explain how you would architect a real-time chat application using WebSockets." },
                         { id: "q7", type: "subjective", question: "Describe a challenging bug you faced in a production environment and how you resolved it." },
                         { id: "q8", type: "coding", title: "Two Sum", description: "Find indices of two numbers that add up to target.", starterCode: "function twoSum(nums, target) {\n  \n}" }
